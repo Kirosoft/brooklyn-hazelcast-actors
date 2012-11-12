@@ -7,6 +7,7 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRefAware;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.ActorSystemAware;
+import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceAware;
 
@@ -41,14 +42,14 @@ public abstract class AbstractActor implements Actor,
 
     @Override
     public void receive(Object msg, ActorRef sender) {
-        Method receiveMethod = Util.findReceiveMethod(getClass(),msg.getClass());
-        if(receiveMethod == null){
-            throw new RuntimeException("No receive method found on actor.class: "+getClass().getName()+
-                    " and message.class:"+msg.getClass().getName());
+        Method receiveMethod = Util.findReceiveMethod(getClass(), msg.getClass());
+        if (receiveMethod == null) {
+            throw new RuntimeException("No receive method found on actor.class: " + getClass().getName() +
+                    " and message.class:" + msg.getClass().getName());
         }
 
         try {
-            receiveMethod.invoke(this,msg, sender);
+            receiveMethod.invoke(this, msg, sender);
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {

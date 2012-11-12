@@ -4,5 +4,6 @@ import java.io.Serializable;
 
 public interface Actors {
 
-    public static class StopActor implements Serializable{}
+    public static class StopActor implements Serializable {
+    }
 }

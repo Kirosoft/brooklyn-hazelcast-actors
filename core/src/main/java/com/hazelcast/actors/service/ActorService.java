@@ -1,10 +1,11 @@
 package com.hazelcast.actors.service;
 
-import com.hazelcast.actors.api.Actors;
 import com.hazelcast.actors.api.Actor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
+import com.hazelcast.actors.api.Actors;
+import com.hazelcast.actors.utils.Util;
 import com.hazelcast.config.ServiceConfig;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.partition.PartitionInfo;
@@ -190,7 +191,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public ActorRef createActor(final ActorRecipe recipe) {
-            final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), recipe.partitionId);
+            final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), recipe.getPartitionId());
 
             Future<ActorContainer> future = executor.submit(
                     new Callable<ActorContainer>() {
@@ -293,7 +294,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             createOperation.setValidateTarget(true);
             createOperation.setServiceName(NAME);
             try {
-                Invocation invocation = nodeService.createInvocationBuilder(NAME, createOperation, recipe.partitionId).build();
+                Invocation invocation = nodeService.createInvocationBuilder(NAME, createOperation, recipe.getPartitionId()).build();
                 Future f = invocation.invoke();
                 return (ActorRef) nodeService.toObject(f.get());
             } catch (RuntimeException e) {

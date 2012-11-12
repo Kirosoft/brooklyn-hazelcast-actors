@@ -21,7 +21,7 @@ public class Util {
                 return receiveMethod;
             } catch (NoSuchMethodException e) {
                 actorClass = actorClass.getSuperclass();
-                if(actorClass == null){
+                if (actorClass == null) {
                     return null;
                 }
             }

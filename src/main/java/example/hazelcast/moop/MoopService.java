@@ -11,7 +11,7 @@ import com.hazelcast.spi.NodeService;
 import com.hazelcast.spi.Operation;
 import com.hazelcast.spi.RemoteService;
 import com.hazelcast.spi.ServiceProxy;
-import example.hazelcast.Util;
+import com.hazelcast.util.Util;
 
 import java.io.DataInput;
 import java.io.DataOutput;

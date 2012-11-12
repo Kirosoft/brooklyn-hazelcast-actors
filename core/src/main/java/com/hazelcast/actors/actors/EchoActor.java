@@ -6,6 +6,6 @@ import com.hazelcast.actors.api.ActorRef;
 public class EchoActor implements Actor {
     @Override
     public void receive(Object msg, ActorRef sender) throws Exception {
-        System.out.println("Echo:"+msg);
+        System.out.println("Echo:" + msg);
     }
 }

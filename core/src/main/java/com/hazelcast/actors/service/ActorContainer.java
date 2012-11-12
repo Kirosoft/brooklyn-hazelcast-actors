@@ -8,6 +8,7 @@ import com.hazelcast.actors.api.ActorRefAware;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.ActorSystemAware;
 import com.hazelcast.actors.api.Autowired;
+import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstanceAware;
 import com.hazelcast.nio.DataSerializable;
 import com.hazelcast.spi.impl.NodeServiceImpl;
@@ -20,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static com.hazelcast.actors.Util.notNull;
 
 public final class ActorContainer implements DataSerializable {
     private Actor actor;
@@ -35,7 +35,7 @@ public final class ActorContainer implements DataSerializable {
 
     public void init(ActorRuntime actorRuntime, NodeServiceImpl nodeService, Map<String, Object> dependencies) {
         try {
-            actor = recipe.actorClass.newInstance();
+            actor = recipe.getActorClass().newInstance();
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {

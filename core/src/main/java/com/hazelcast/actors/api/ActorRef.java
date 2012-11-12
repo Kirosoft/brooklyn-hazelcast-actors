@@ -1,8 +1,9 @@
 package com.hazelcast.actors.api;
 
+import com.hazelcast.actors.utils.Util;
+
 import java.io.Serializable;
 
-import static com.hazelcast.actors.Util.notNull;
 
 public final class ActorRef implements Serializable {
     public final String id;
