@@ -1,0 +1,56 @@
+TODO
+
+- not possible to do normal hazelcast operations from the Actor.init
+
+- when an entity is created, automatically the properties should be copied to the attributes.
+
+- constructing a more complex object from the json msg
+
+- add migration
+
+- cleaning up of execution
+
+- a future returned by the send
+
+- using the fork join executor.
+
+- optimization for local calls.
+
+- receive method can be cached.
+
+DONE
+
+- rest api for sending messages to actors.
+
+- added a scheduling mechanism on the ActorRuntime so that messages can repeatedly be send to an actor.
+
+- Brooklyn: Only when there is a change in the value of the Attribute, then a change happens. So no call
+to the HazelcastMap or to the subscribers.
+
+- Brooklyn: The initial value of the attribute is send to the listeners and not only when a change happens.
+
+- Brooklyn: Can now listen to BasicAttributes.
+
+- added the ListAttribute and cleaned up the WebCluster
+
+- support for dispatch
+
+- configure dependencies from the serviceconfig
+
+- dependency injection in the actor
+
+- the entity should have access to management context.
+
+- the recipe should be able to pass properties.
+
+- the ActorRef needs to be available in the Actor.
+
+- stopping an actor.
+
+- the actor is receiving the sender
+
+- the actor needs to be able to get an 'init' so it can initialize
+
+- the actor needs to get access to the ActorSystem
+
+- the actor needs to get access to the HazelcastInstance
