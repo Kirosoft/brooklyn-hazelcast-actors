@@ -1,4 +1,4 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.api;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

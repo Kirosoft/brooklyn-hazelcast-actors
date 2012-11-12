@@ -1,9 +1,9 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.AbstractActor;
-import com.hazelcast.actors.ActorRecipe;
-import com.hazelcast.actors.ActorRef;
-import com.hazelcast.actors.Autowired;
+import com.hazelcast.actors.actors.AbstractActor;
+import com.hazelcast.actors.api.ActorRecipe;
+import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.Autowired;
 import com.hazelcast.core.IMap;
 import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.attributes.BasicAttribute;

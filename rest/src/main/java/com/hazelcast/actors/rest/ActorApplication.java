@@ -1,7 +1,7 @@
 package com.hazelcast.actors.rest;
 
-import com.hazelcast.actors.ActorRef;
-import com.hazelcast.actors.ActorRuntime;
+import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.ActorRuntime;
 import org.restlet.Application;
 import org.restlet.Component;
 import org.restlet.Context;

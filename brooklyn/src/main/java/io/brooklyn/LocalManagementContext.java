@@ -1,6 +1,6 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.ActorRef;
+import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 

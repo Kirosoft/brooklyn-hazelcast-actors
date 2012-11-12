@@ -1,6 +1,6 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.ActorRef;
+import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.Entity;
 import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.attributes.ListAttribute;

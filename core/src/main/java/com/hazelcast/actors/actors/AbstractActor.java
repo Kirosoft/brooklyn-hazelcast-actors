@@ -1,5 +1,12 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.actors;
 
+import com.hazelcast.actors.api.Actor;
+import com.hazelcast.actors.api.ActorLifecycleAware;
+import com.hazelcast.actors.api.ActorRecipe;
+import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.ActorRefAware;
+import com.hazelcast.actors.api.ActorRuntime;
+import com.hazelcast.actors.api.ActorSystemAware;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceAware;
 

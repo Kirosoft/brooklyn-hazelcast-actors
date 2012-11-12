@@ -1,6 +1,6 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.ActorRef;
+import com.hazelcast.actors.api.ActorRef;
 
 import java.io.Serializable;
 

@@ -1,4 +1,4 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.utils;
 
 import java.util.HashMap;
 import java.util.Map;

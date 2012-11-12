@@ -1,5 +1,10 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.service;
 
+import com.hazelcast.actors.api.Actors;
+import com.hazelcast.actors.api.Actor;
+import com.hazelcast.actors.api.ActorRecipe;
+import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.config.ServiceConfig;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.partition.PartitionInfo;

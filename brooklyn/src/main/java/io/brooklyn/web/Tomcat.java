@@ -1,7 +1,7 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.ActorRecipe;
-import com.hazelcast.actors.ActorRef;
+import com.hazelcast.actors.api.ActorRecipe;
+import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.SoftwareProcessDriver;
 import io.brooklyn.SoftwareProcessEntity;
 import io.brooklyn.attributes.AttributeType;

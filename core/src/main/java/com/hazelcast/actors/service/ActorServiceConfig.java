@@ -1,4 +1,4 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.service;
 
 import com.hazelcast.config.CustomServiceConfig;
 

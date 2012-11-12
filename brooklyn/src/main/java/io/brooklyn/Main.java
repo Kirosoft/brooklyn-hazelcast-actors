@@ -1,10 +1,10 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.ActorRef;
-import com.hazelcast.actors.ActorRuntime;
-import com.hazelcast.actors.ActorService;
-import com.hazelcast.actors.ActorServiceConfig;
-import com.hazelcast.actors.EchoActor;
+import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.ActorRuntime;
+import com.hazelcast.actors.service.ActorService;
+import com.hazelcast.actors.service.ActorServiceConfig;
+import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;

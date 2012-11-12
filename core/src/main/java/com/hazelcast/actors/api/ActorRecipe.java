@@ -1,4 +1,6 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.api;
+
+import com.hazelcast.actors.api.Actor;
 
 import java.io.Serializable;
 import java.util.Collections;

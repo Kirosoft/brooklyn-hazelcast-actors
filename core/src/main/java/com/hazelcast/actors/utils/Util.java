@@ -1,4 +1,6 @@
-package com.hazelcast.actors;
+package com.hazelcast.actors.utils;
+
+import com.hazelcast.actors.api.ActorRef;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

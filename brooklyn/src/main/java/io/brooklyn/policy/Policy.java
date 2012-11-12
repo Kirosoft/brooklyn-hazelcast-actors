@@ -1,7 +1,7 @@
 package io.brooklyn.policy;
 
-import com.hazelcast.actors.AbstractActor;
-import com.hazelcast.actors.ActorRef;
+import com.hazelcast.actors.actors.AbstractActor;
+import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.SensorEvent;
 
 public class Policy extends AbstractActor {
