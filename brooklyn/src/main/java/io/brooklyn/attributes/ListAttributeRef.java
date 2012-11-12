@@ -1,6 +1,6 @@
 package io.brooklyn.attributes;
 
-public interface ListAttribute<E> extends Attribute {
+public interface ListAttributeRef<E> extends AttributeRef {
 
     int size();
 

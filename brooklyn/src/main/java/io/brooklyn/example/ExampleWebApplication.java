@@ -3,13 +3,13 @@ package io.brooklyn.example;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.Application;
-import io.brooklyn.attributes.AttributeType;
-import io.brooklyn.attributes.BasicAttribute;
+import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.web.WebCluster;
 
 public class ExampleWebApplication extends Application {
 
-    private final BasicAttribute<ActorRef> webClusterAttribute = newBasicAttribute(new AttributeType<ActorRef>("web"));
+    private final BasicAttributeRef<ActorRef> webClusterAttribute = newBasicAttributeRef(new Attribute<ActorRef>("web"));
 
     @Override
     public void init(ActorRecipe actorRecipe) {

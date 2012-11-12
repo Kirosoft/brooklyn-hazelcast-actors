@@ -1,0 +1,12 @@
+TODO
+
+- when an entity is created, automatically the properties should be copied to the attributes.
+
+DONE
+
+- Brooklyn: Only when there is a change in the value of the Attribute, then a change happens. So no call
+to the HazelcastMap or to the subscribers.
+
+- Brooklyn: The initial value of the attribute is send to the listeners and not only when a change happens.
+
+- Brooklyn: Can now listen to BasicAttributes.

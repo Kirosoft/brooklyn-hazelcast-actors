@@ -1,4 +1,4 @@
-package io.brooklyn;
+package io.brooklyn.attributes;
 
 import com.hazelcast.actors.api.ActorRef;
 

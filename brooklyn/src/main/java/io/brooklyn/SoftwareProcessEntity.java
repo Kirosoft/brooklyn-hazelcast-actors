@@ -1,13 +1,13 @@
 package io.brooklyn;
 
-import io.brooklyn.attributes.AttributeType;
-import io.brooklyn.attributes.BasicAttribute;
+import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.BasicAttributeRef;
 
 import java.io.Serializable;
 
 public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> extends Entity {
 
-    protected final BasicAttribute<String> locationAttribute = newBasicAttribute(new AttributeType<String>("location"));
+    protected final BasicAttributeRef<String> locationAttribute = newBasicAttributeRef(new Attribute<String>("location"));
     private D softwareProcessDriver;
 
     public abstract Class<? extends SoftwareProcessDriver> getDriverClass();

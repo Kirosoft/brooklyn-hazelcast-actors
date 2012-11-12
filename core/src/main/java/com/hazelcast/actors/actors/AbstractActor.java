@@ -20,9 +20,14 @@ public abstract class AbstractActor implements Actor,
     private HazelcastInstance hzInstance;
     private ActorRuntime actorRuntime;
     private ActorRef self;
+    private ActorRecipe recipe;
 
     public ActorRef self() {
         return self;
+    }
+
+    public ActorRecipe getRecipe() {
+        return recipe;
     }
 
     @Override
@@ -59,7 +64,7 @@ public abstract class AbstractActor implements Actor,
 
     @Override
     public void init(ActorRecipe recipe) {
-        //no-op
+        this.recipe = recipe;
     }
 
     @Override

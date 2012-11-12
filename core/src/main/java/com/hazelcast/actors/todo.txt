@@ -2,8 +2,6 @@ TODO
 
 - not possible to do normal hazelcast operations from the Actor.init
 
-- when an entity is created, automatically the properties should be copied to the attributes.
-
 - constructing a more complex object from the json msg
 
 - add migration
@@ -18,18 +16,17 @@ TODO
 
 - receive method can be cached.
 
+- deal with receive method failure in the actorcontainer
+
+- the mailbox of the actor is not durable, it is an ordinary blocking queue.
+
+- the ability to create durable/non durable actors.
+
 DONE
 
 - rest api for sending messages to actors.
 
 - added a scheduling mechanism on the ActorRuntime so that messages can repeatedly be send to an actor.
-
-- Brooklyn: Only when there is a change in the value of the Attribute, then a change happens. So no call
-to the HazelcastMap or to the subscribers.
-
-- Brooklyn: The initial value of the attribute is send to the listeners and not only when a change happens.
-
-- Brooklyn: Can now listen to BasicAttributes.
 
 - added the ListAttribute and cleaned up the WebCluster
 

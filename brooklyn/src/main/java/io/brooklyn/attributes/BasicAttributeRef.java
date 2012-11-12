@@ -1,6 +1,6 @@
 package io.brooklyn.attributes;
 
-public interface BasicAttribute<E> extends Attribute{
+public interface BasicAttributeRef<E> extends AttributeRef {
 
     E get();
 

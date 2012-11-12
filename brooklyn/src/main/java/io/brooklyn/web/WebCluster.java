@@ -2,14 +2,14 @@ package io.brooklyn.web;
 
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.Entity;
-import io.brooklyn.attributes.AttributeType;
-import io.brooklyn.attributes.ListAttribute;
+import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.ListAttributeRef;
 
 import java.io.Serializable;
 
 public class WebCluster extends Entity {
 
-    private ListAttribute<ActorRef> childrenAttribute = newListAttribute(new AttributeType<ActorRef>("childrenAttribute"));
+    private ListAttributeRef<ActorRef> childrenAttribute = newListAttribute(new Attribute<ActorRef>("childrenAttribute"));
 
     public void receive(ChildFailureMessage message, ActorRef sender) {
         System.out.println("WebCluster.BrokenChild@" + self());
