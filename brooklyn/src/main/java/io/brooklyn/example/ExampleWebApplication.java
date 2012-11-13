@@ -12,7 +12,7 @@ public class ExampleWebApplication extends Application {
     private final BasicAttributeRef<ActorRef> webClusterAttribute = newBasicAttributeRef(new Attribute<ActorRef>("web"));
 
     @Override
-    public void init(ActorRecipe actorRecipe) {
+    public void init(ActorRecipe actorRecipe) throws Exception{
         super.init(actorRecipe);
 
         ActorRef webcluster = getActorRuntime().newActor(WebCluster.class);

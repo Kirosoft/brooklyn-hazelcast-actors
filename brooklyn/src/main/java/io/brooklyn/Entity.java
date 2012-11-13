@@ -1,6 +1,7 @@
 package io.brooklyn;
 
 import com.hazelcast.actors.actors.AbstractActor;
+import com.hazelcast.actors.actors.ReflectiveActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.Autowired;
@@ -11,7 +12,7 @@ import io.brooklyn.attributes.ListAttributeRef;
 
 import java.io.Serializable;
 
-public abstract class Entity extends AbstractActor {
+public abstract class Entity extends ReflectiveActor {
 
     @Autowired
     private ManagementContext managementContext;
@@ -19,7 +20,7 @@ public abstract class Entity extends AbstractActor {
     private AttributeMap attributeMap = new AttributeMap(this);
 
     @Override
-    public void init(ActorRecipe actorRecipe) {
+    public void init(ActorRecipe actorRecipe) throws Exception{
         super.init(actorRecipe);
         attributeMap.init(getHzInstance(), actorRecipe);
     }

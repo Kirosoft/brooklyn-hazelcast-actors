@@ -215,12 +215,12 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                     }
             );
 
-            actors.put(ref.id, future);
+            actors.put(ref.getId(), future);
             return ref;
         }
 
         public void terminate(final ActorRef target) throws InterruptedException {
-            final Future<ActorContainer> future = actors.get(target.id);
+            final Future<ActorContainer> future = actors.get(target.getId());
             if (future == null) {
                 return;
             }
@@ -233,9 +233,9 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                     public void run() {
                         try {
                             actorContainer.processMessage();
-                            actors.remove(target.id);
+                            actors.remove(target.getId());
                             actorContainer.terminate();
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
@@ -260,9 +260,9 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
 
         public Actor getActor(ActorRef actorRef) {
-            ActorPartitionContainer container = partitionContainers[actorRef.partitionId];
+            ActorPartitionContainer container = partitionContainers[actorRef.getPartitionId()];
             for (int k = 0; k < 60; k++) {
-                Future<ActorContainer> future = container.getPartition(name).actors.get(actorRef.id);
+                Future<ActorContainer> future = container.getPartition(name).actors.get(actorRef.getId());
                 if (future == null) {
                     Util.sleep(1000);
                     break;
@@ -354,11 +354,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             notNull(destination, "destination");
             notNull(msg, "msg");
 
-            Operation sendOperation = new SendOperation(sender, name, destination.id, msg);
+            Operation sendOperation = new SendOperation(sender, name, destination.getId(), msg);
             sendOperation.setValidateTarget(true);
             sendOperation.setServiceName(NAME);
             try {
-                Invocation invocation = nodeService.createInvocationBuilder(NAME, sendOperation, destination.partitionId).build();
+                Invocation invocation = nodeService.createInvocationBuilder(NAME, sendOperation, destination.getPartitionId()).build();
                 Future f = invocation.invoke();
                 f.get();
             } catch (RuntimeException e) {
@@ -381,7 +381,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             terminateOperation.setValidateTarget(true);
             terminateOperation.setServiceName(NAME);
             try {
-                Invocation invocation = nodeService.createInvocationBuilder(NAME, terminateOperation, target.partitionId).build();
+                Invocation invocation = nodeService.createInvocationBuilder(NAME, terminateOperation, target.getPartitionId()).build();
                 Future f = invocation.invoke();
                 f.get();
             } catch (RuntimeException e) {

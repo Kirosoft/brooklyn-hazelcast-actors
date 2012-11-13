@@ -1,7 +1,5 @@
 TODO
 
-- it should be possible to do a receive without a sender
-
 - not possible to do normal hazelcast operations from the Actor.init
 
 - constructing a more complex object from the json msg
@@ -35,6 +33,8 @@ TODO
 - caching of receive method.
 
 DONE
+
+- it should be possible to do a receive without a sender
 
 - when the processing of a message fails, the actor that send the message should be notified?
 

@@ -101,6 +101,7 @@ public class IntegrationTest {
     public static class TestActor extends AbstractActor {
         private List messages = new Vector();
 
+        @Override
         public void receive(Object msg, ActorRef sender) throws Exception {
             System.out.println(msg);
             messages.add(msg);

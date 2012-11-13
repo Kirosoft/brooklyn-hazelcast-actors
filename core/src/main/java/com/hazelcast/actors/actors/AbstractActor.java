@@ -50,52 +50,23 @@ public abstract class AbstractActor implements Actor,
         this.actorRuntime.send(self(), msg);
     }
 
-    public void receive(Callback callback, ActorRuntime sender) {
-        callback.run(this);
-    }
-
     @Override
-    public void receive(Object msg, ActorRef sender) throws Exception {
-        Method receiveMethod = Util.findReceiveMethod(getClass(), msg.getClass());
-        if (receiveMethod == null) {
-            throw new UnprocessedException("No receive method found on actor.class: " + getClass().getName() +
-                    " and message.class:" + msg.getClass().getName());
-        }
-
-        try {
-            receiveMethod.invoke(this, msg, sender);
-        } catch (IllegalAccessException e) {
-            //This will not be thrown since we make the receiveMethod accessible
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            Throwable cause = e.getTargetException();
-            if (cause instanceof Exception) {
-                throw (Exception) cause;
-            } else if (cause instanceof Error) {
-                throw (Error) cause;
-            } else {
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
-    @Override
-    public void init(ActorRecipe recipe) {
+    public void init(ActorRecipe recipe)throws Exception{
         this.recipe = recipe;
     }
 
     @Override
-    public void terminate() {
+    public void terminate()throws Exception {
         //no-op
     }
 
     @Override
-    public void reactivate() {
+    public void reactivate() throws Exception{
         //no-op
     }
 
     @Override
-    public void suspend() {
+    public void suspend()throws Exception {
         //no-op
     }
 

@@ -6,12 +6,20 @@ import java.io.Serializable;
 
 
 public final class ActorRef implements Serializable {
-    public final String id;
-    public final int partitionId;
+    private final String id;
+    private final int partitionId;
 
     public ActorRef(String id, int partitionId) {
         this.id = Util.notNull(id, "id");
         this.partitionId = partitionId;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public int getPartitionId() {
+        return partitionId;
     }
 
     @Override

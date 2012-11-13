@@ -54,7 +54,7 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     }
 
     @Override
-    public void init(ActorRecipe actorRecipe) {
+    public void init(ActorRecipe actorRecipe)throws Exception {
         super.init(actorRecipe);
 
         //the actor will register itself, so that every second it gets a message to update is jmx information

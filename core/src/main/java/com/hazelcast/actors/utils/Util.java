@@ -13,7 +13,7 @@ import java.lang.reflect.Method;
 
 public class Util {
 
-    public static void sleep(long miliseconds){
+    public static void sleep(long miliseconds) {
         try {
             Thread.sleep(miliseconds);
         } catch (InterruptedException e) {
@@ -25,6 +25,10 @@ public class Util {
         while (true) {
             try {
                 Method receiveMethod = actorClass.getDeclaredMethod("receive", messageClass, ActorRef.class);
+                if (receiveMethod == null) {
+                    receiveMethod = actorClass.getDeclaredMethod("receive", messageClass);
+                }
+
                 receiveMethod.setAccessible(true);
                 return receiveMethod;
             } catch (NoSuchMethodException e) {

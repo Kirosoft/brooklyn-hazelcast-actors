@@ -76,7 +76,11 @@ public final class ActorContainer implements DataSerializable {
         }
 
         if (actor instanceof ActorLifecycleAware) {
-            ((ActorLifecycleAware) actor).init(recipe);
+            try {
+                ((ActorLifecycleAware) actor).init(recipe);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -103,7 +107,7 @@ public final class ActorContainer implements DataSerializable {
         }
     }
 
-    public void terminate() {
+    public void terminate()throws Exception {
         if (actor instanceof ActorLifecycleAware) {
             ((ActorLifecycleAware) actor).terminate();
         }
