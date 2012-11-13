@@ -8,11 +8,24 @@ import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.util.JmxConnection;
 
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
 import javax.management.openmbean.CompositeData;
 import java.io.Serializable;
 
+/**
+ * The current start of tomcat is a blocking operation, meaning: as long as the installation (install/customize/launch)
+ * is executing, the actor will not be processing any other messages.
+ *
+ * This is undesirable, and also a violation what you normally want to do with actors: keep processing messages
+ * as short as possible. What should be done is that the driver calls should be offloaded to another thread and
+ * a message should be send as soon as the task is complete. Tomcat then should respond to these messages (e.g.
+ * InstallComplete) and start to execute the following step, e.g. 'customize'.
+ *
+ * The problem is that it could be that other operations like Deploy are being send before the Tomcat machine
+ * is fully started. This can be solved in different ways;
+ * - only send deploy message when tomcat is running
+ * - store the deploy messages in tomcat and process them as soon as you receive the 'Running' event from the
+ * driver.
+ */
 public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
 
     public static final Attribute<Integer> HTTP_PORT = new Attribute<Integer>("httpPort", 8080);
@@ -22,16 +35,18 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     public static final Attribute<Long> USED_HEAP = new Attribute<Long>("usedHeap");
     public static final Attribute<Long> MAX_HEAP = new Attribute<Long>("maxHeap");
     public static final Attribute<Integer> JMX_PORT = new Attribute<Integer>("jmxPort");
+    public static final Attribute<String> VERSION = new Attribute<String>("version", "7.0.32");
 
-    protected final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(HTTP_PORT);
-    protected final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(SHUTDOWN_PORT);
-    protected final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(JMX_PORT);
-    protected final BasicAttributeRef<String> state = newBasicAttributeRef(STATE);
-    protected final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(CLUSTER);
-    protected final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(USED_HEAP);
-    protected final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(MAX_HEAP);
+    public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(HTTP_PORT);
+    public final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(SHUTDOWN_PORT);
+    public final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(JMX_PORT);
+    public final BasicAttributeRef<String> state = newBasicAttributeRef(STATE);
+    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(CLUSTER);
+    public final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(USED_HEAP);
+    public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(MAX_HEAP);
+    public final BasicAttributeRef<String> version = newBasicAttributeRef(VERSION);
 
-    private JmxConnection jmxConnection;
+    public JmxConnection jmxConnection = new JmxConnection();
 
     @Override
     public Class<? extends SoftwareProcessDriver> getDriverClass() {
@@ -42,6 +57,8 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     public void init(ActorRecipe actorRecipe) {
         super.init(actorRecipe);
 
+        //the actor will register itself, so that every second it gets a message to update is jmx information
+        //if that is available.
         getActorRuntime().repeat(self(), new JmxUpdate(), 1000);
     }
 
@@ -59,8 +76,8 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     public void receive(StartTomcatMessage msg, ActorRef sender) {
         System.out.println("StartTomcat");
 
-        //cluster.set(msg.cluster);
-        //locationAttribute.set(msg.location);
+        cluster.set(msg.cluster);
+        location.set(msg.location);
 
         try {
             state.set("Starting");
@@ -68,7 +85,6 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
             driver.install();
             driver.customize();
             driver.launch();
-            jmxConnection = driver.getJmxConnection();
             state.set("Started");
         } catch (Exception e) {
             e.printStackTrace();
@@ -97,23 +113,13 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     }
 
     public void receive(JmxUpdate msg, ActorRef sender) {
-        if (jmxConnection == null) {
+        CompositeData heapData = (CompositeData) jmxConnection.getAttribute("java.lang:type=Memory", "HeapMemoryUsage");
+        if (heapData == null) {
             usedHeap.set(-1L);
             maxHeap.set(-1L);
         } else {
-            MBeanServerConnection c = jmxConnection.getConnection();
-            try {
-                ObjectName operatingSystemMXBean = new ObjectName("java.lang:type=Memory");
-                CompositeData heapMemoryUsage = (CompositeData) c.getAttribute(operatingSystemMXBean, "HeapMemoryUsage");
-                long max = (Long) heapMemoryUsage.get("max");
-                long used = (Long) heapMemoryUsage.get("used");
-                usedHeap.set(used);
-                maxHeap.set(max);
-                //System.out.println(self() + " max:" + max + " used:" + used);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            //jmxConnection
+            usedHeap.set((Long) heapData.get("used"));
+            maxHeap.set((Long) heapData.get("max"));
         }
     }
 

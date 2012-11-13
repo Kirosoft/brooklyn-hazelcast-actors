@@ -8,9 +8,11 @@ public interface ActorRuntime {
 
     void send(ActorRef sender, ActorRef destination, Object msg);
 
-    void stop(ActorRef target);
+    void terminate(ActorRef target);
 
     void repeat(ActorRef ref, Object msg, int delaysMs);
+
+    void monitor(ActorRef listener, ActorRef target);
 
     ActorRef newActor(Class<? extends Actor> actorClass);
 

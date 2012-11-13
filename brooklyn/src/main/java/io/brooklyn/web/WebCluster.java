@@ -1,5 +1,6 @@
 package io.brooklyn.web;
 
+import com.hazelcast.actors.api.MessageDeliveryFailure;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.Entity;
 import io.brooklyn.attributes.Attribute;
@@ -42,6 +43,8 @@ public class WebCluster extends Entity {
             //we need to add machines.
             for (int k = 0; k < delta; k++) {
                 ActorRef tomcat = getActorRuntime().newActor(Tomcat.class);
+                //monitor the child:
+                getActorRuntime().monitor(self(),tomcat);
                 childrenAttribute.add(tomcat);
                 getActorRuntime().send(self(), tomcat, new Tomcat.StartTomcatMessage("localhost", self()));
             }
@@ -52,6 +55,10 @@ public class WebCluster extends Entity {
                 getActorRuntime().send(self(), tomcat, new Tomcat.StopTomcatMessage());
             }
         }
+    }
+
+    public void receive(MessageDeliveryFailure messageDeliveryFailure){
+        //todo: react on child processing failures
     }
 
     //signals the webcluster that it should simulate a failure.

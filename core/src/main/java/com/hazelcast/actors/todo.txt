@@ -1,5 +1,7 @@
 TODO
 
+- it should be possible to do a receive without a sender
+
 - not possible to do normal hazelcast operations from the Actor.init
 
 - constructing a more complex object from the json msg
@@ -18,11 +20,25 @@ TODO
 
 - deal with receive method failure in the actorcontainer
 
+- when a message is send, currently you won't get any guarantee if it is delivered.
+
 - the mailbox of the actor is not durable, it is an ordinary blocking queue.
 
 - the ability to create durable/non durable actors.
 
+- receive methods should be able to throw checked exception
+
+- when sending of a message fails because actor doesn't exist, actor should be notified
+
+- when sending of a message fails because mailbox too full, the actor should be notified.
+
+- caching of receive method.
+
 DONE
+
+- when the processing of a message fails, the actor that send the message should be notified?
+
+- an actor should be able to listen to failures in other actors.
 
 - rest api for sending messages to actors.
 

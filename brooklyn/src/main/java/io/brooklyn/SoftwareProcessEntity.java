@@ -7,7 +7,12 @@ import java.io.Serializable;
 
 public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> extends Entity {
 
-    protected final BasicAttributeRef<String> locationAttribute = newBasicAttributeRef(new Attribute<String>("location"));
+    public static final Attribute<String> LOCATION = new Attribute<String>("location");
+    public static final Attribute<String> RUN_DIR = new Attribute<String>("runDir");
+
+    public final BasicAttributeRef<String> location = newBasicAttributeRef(LOCATION);
+    public final BasicAttributeRef<String> runDir = newBasicAttributeRef(RUN_DIR);
+
     private D softwareProcessDriver;
 
     public abstract Class<? extends SoftwareProcessDriver> getDriverClass();
@@ -18,7 +23,6 @@ public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> ext
         }
         return softwareProcessDriver;
     }
-
 
     public static class StartMessage implements Serializable {
         public final String location;

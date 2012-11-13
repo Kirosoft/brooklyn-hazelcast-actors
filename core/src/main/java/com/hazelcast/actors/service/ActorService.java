@@ -7,6 +7,7 @@ import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.Actors;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.config.ServiceConfig;
+import com.hazelcast.core.IMap;
 import com.hazelcast.logging.ILogger;
 import com.hazelcast.partition.PartitionInfo;
 import com.hazelcast.spi.Invocation;
@@ -24,9 +25,11 @@ import java.io.DataOutput;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -37,6 +40,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static com.hazelcast.actors.utils.Util.notNull;
 
 public class ActorService implements ManagedService, MigrationAwareService, RemoteService {
 
@@ -213,7 +219,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             return ref;
         }
 
-        public void stop(final ActorRef target) throws InterruptedException {
+        public void terminate(final ActorRef target) throws InterruptedException {
             final Future<ActorContainer> future = actors.get(target.id);
             if (future == null) {
                 return;
@@ -221,14 +227,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
             try {
                 final ActorContainer actorContainer = future.get();
-                actorContainer.post(null, new Actors.StopActor());
+                actorContainer.post(null, new Actors.TerminateActor());
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
                             actorContainer.processMessage();
                             actors.remove(target.id);
-                            actorContainer.stop();
+                            actorContainer.terminate();
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -244,9 +250,52 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
     }
 
-    private class ActorRuntimeProxyImpl implements ActorRuntimeProxy {
+    public class ActorRuntimeProxyImpl implements ActorRuntimeProxy {
         private final Random random = new Random();
         private final String name;
+
+        private ActorRuntimeProxyImpl(String name) {
+            this.name = name;
+        }
+
+
+        public Actor getActor(ActorRef actorRef) {
+            ActorPartitionContainer container = partitionContainers[actorRef.partitionId];
+            for (int k = 0; k < 60; k++) {
+                Future<ActorContainer> future = container.getPartition(name).actors.get(actorRef.id);
+                if (future == null) {
+                    Util.sleep(1000);
+                    break;
+                }
+                try {
+                    return future.get().getActor();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            throw new RuntimeException("Actor with ref: "+actorRef+" was not found");
+        }
+
+        @Override
+        public void monitor(ActorRef listener, ActorRef target) {
+            notNull(listener, "listener");
+            notNull(target, "target");
+            IMap<ActorRef, Set<ActorRef>> monitorMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("monitorMap");
+            monitorMap.lock(target);
+            try {
+                Set<ActorRef> listeners = monitorMap.get(target);
+                if (listeners == null) {
+                    listeners = new HashSet<ActorRef>();
+                }
+                listeners.add(listener);
+                monitorMap.put(target, listeners);
+            } finally {
+                monitorMap.unlock(target);
+            }
+        }
 
         @Override
         public void repeat(final ActorRef ref, final Object msg, int delaysMs) {
@@ -259,20 +308,16 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             scheduler.scheduleWithFixedDelay(command, 0, delaysMs, TimeUnit.MILLISECONDS);
         }
 
-        private ActorRuntimeProxyImpl(String name) {
-            this.name = name;
-        }
-
         @Override
         public ActorRef newActor(Class<? extends Actor> actorClass, int partitionId) {
-            Util.notNull(actorClass, "actorClass");
+            notNull(actorClass, "actorClass");
             ActorRecipe recipe = new ActorRecipe(actorClass, partitionId);
             return newActor(recipe);
         }
 
         @Override
         public ActorRef newActor(Class<? extends Actor> actorClass) {
-            Util.notNull(actorClass, "actorClass");
+            notNull(actorClass, "actorClass");
             int partitionId = random.nextInt(nodeService.getPartitionCount());
             ActorRecipe recipe = new ActorRecipe(actorClass, partitionId);
             return newActor(recipe);
@@ -280,7 +325,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
         @Override
         public ActorRef newActor(Class<? extends Actor> actorClass, Map<String, Object> properties) {
-            Util.notNull(actorClass, "actorClass");
+            notNull(actorClass, "actorClass");
             int partitionId = random.nextInt(nodeService.getPartitionCount());
             ActorRecipe recipe = new ActorRecipe(actorClass, partitionId, properties);
             return newActor(recipe);
@@ -288,7 +333,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
         @Override
         public ActorRef newActor(ActorRecipe recipe) {
-            Util.notNull(recipe, "recipe");
+            notNull(recipe, "recipe");
 
             Operation createOperation = new CreateOperation(name, recipe);
             createOperation.setValidateTarget(true);
@@ -306,8 +351,8 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
         @Override
         public void send(ActorRef sender, ActorRef destination, Object msg) {
-            Util.notNull(destination, "destination");
-            Util.notNull(msg, "msg");
+            notNull(destination, "destination");
+            notNull(msg, "msg");
 
             Operation sendOperation = new SendOperation(sender, name, destination.id, msg);
             sendOperation.setValidateTarget(true);
@@ -329,14 +374,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         @Override
-        public void stop(ActorRef target) {
-            Util.notNull(target, "target");
+        public void terminate(ActorRef target) {
+            notNull(target, "target");
 
-            Operation sendOperation = new StopOperation(name, target);
-            sendOperation.setValidateTarget(true);
-            sendOperation.setServiceName(NAME);
+            Operation terminateOperation = new TerminateOperation(name, target);
+            terminateOperation.setValidateTarget(true);
+            terminateOperation.setServiceName(NAME);
             try {
-                Invocation invocation = nodeService.createInvocationBuilder(NAME, sendOperation, target.partitionId).build();
+                Invocation invocation = nodeService.createInvocationBuilder(NAME, terminateOperation, target.partitionId).build();
                 Future f = invocation.invoke();
                 f.get();
             } catch (RuntimeException e) {
@@ -398,14 +443,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
     }
 
-    private static class StopOperation extends Operation {
+    private static class TerminateOperation extends Operation {
         private String name;
         private ActorRef target;
 
-        public StopOperation() {
+        public TerminateOperation() {
         }
 
-        private StopOperation(String name, ActorRef target) {
+        private TerminateOperation(String name, ActorRef target) {
             this.name = name;
             this.target = target;
         }
@@ -431,7 +476,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             ActorPartitionContainer actorPartitionContainer = actorService.partitionContainers[getPartitionId()];
             ActorPartition actorPartition = actorPartitionContainer.getPartition(name);
             try {
-                actorPartition.stop(target);
+                actorPartition.terminate(target);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

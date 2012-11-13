@@ -7,6 +7,7 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRefAware;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.ActorSystemAware;
+import com.hazelcast.actors.api.UnprocessedException;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.HazelcastInstanceAware;
@@ -45,20 +46,36 @@ public abstract class AbstractActor implements Actor,
         this.actorRuntime = actorRuntime;
     }
 
+    public final void send(Object msg) {
+        this.actorRuntime.send(self(), msg);
+    }
+
+    public void receive(Callback callback, ActorRuntime sender) {
+        callback.run(this);
+    }
+
     @Override
-    public void receive(Object msg, ActorRef sender) {
+    public void receive(Object msg, ActorRef sender) throws Exception {
         Method receiveMethod = Util.findReceiveMethod(getClass(), msg.getClass());
         if (receiveMethod == null) {
-            throw new RuntimeException("No receive method found on actor.class: " + getClass().getName() +
+            throw new UnprocessedException("No receive method found on actor.class: " + getClass().getName() +
                     " and message.class:" + msg.getClass().getName());
         }
 
         try {
             receiveMethod.invoke(this, msg, sender);
         } catch (IllegalAccessException e) {
+            //This will not be thrown since we make the receiveMethod accessible
             throw new RuntimeException(e);
         } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
+            Throwable cause = e.getTargetException();
+            if (cause instanceof Exception) {
+                throw (Exception) cause;
+            } else if (cause instanceof Error) {
+                throw (Error) cause;
+            } else {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -68,7 +85,7 @@ public abstract class AbstractActor implements Actor,
     }
 
     @Override
-    public void stop() {
+    public void terminate() {
         //no-op
     }
 

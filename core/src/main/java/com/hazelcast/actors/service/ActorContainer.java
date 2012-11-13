@@ -8,6 +8,7 @@ import com.hazelcast.actors.api.ActorRefAware;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.ActorSystemAware;
 import com.hazelcast.actors.api.Autowired;
+import com.hazelcast.actors.api.MessageDeliveryFailure;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstanceAware;
 import com.hazelcast.nio.DataSerializable;
@@ -16,8 +17,11 @@ import com.hazelcast.spi.impl.NodeServiceImpl;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -27,18 +31,33 @@ public final class ActorContainer implements DataSerializable {
     private BlockingQueue mailbox = new LinkedBlockingQueue();
     private ActorRef ref;
     private ActorRecipe recipe;
+    private Map<ActorRef, Set<ActorRef>> monitorMap;
+    private ActorRuntime actorRuntime;
 
     public ActorContainer(ActorRecipe recipe, ActorRef actorRef) {
         this.recipe = Util.notNull(recipe, "recipe");
         this.ref = Util.notNull(actorRef, "ref");
     }
 
+    public Actor getActor() {
+        return actor;
+    }
+
     public void init(ActorRuntime actorRuntime, NodeServiceImpl nodeService, Map<String, Object> dependencies) {
+        this.actorRuntime = actorRuntime;
+        monitorMap = nodeService.getNode().hazelcastInstance.getMap("monitorMap");
+
         try {
-            actor = recipe.getActorClass().newInstance();
+            Constructor<? extends Actor> constructor = recipe.getActorClass().getConstructor();
+            constructor.setAccessible(true);
+            actor = constructor.newInstance();
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
         } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
             throw new RuntimeException(e);
         }
 
@@ -84,9 +103,9 @@ public final class ActorContainer implements DataSerializable {
         }
     }
 
-    public void stop() {
+    public void terminate() {
         if (actor instanceof ActorLifecycleAware) {
-            ((ActorLifecycleAware) actor).stop();
+            ((ActorLifecycleAware) actor).terminate();
         }
     }
 
@@ -114,6 +133,22 @@ public final class ActorContainer implements DataSerializable {
             actor.receive(message, sender);
         } catch (Exception e) {
             e.printStackTrace();
+
+            if (sender != null) {
+                MessageDeliveryFailure messageDeliveryFailure = new MessageDeliveryFailure(ref, sender, e);
+                actorRuntime.send(sender, messageDeliveryFailure);
+            }
+
+            Set<ActorRef> listeners = monitorMap.get(ref);
+            if (listeners != null && !listeners.isEmpty()) {
+                MessageDeliveryFailure messageDeliveryFailure = new MessageDeliveryFailure(ref, sender, e);
+                for (ActorRef listener : listeners) {
+                    //if the sender also is a monitor, we don't want to send the same message to him again.
+                    if (!listener.equals(sender)) {
+                        actorRuntime.send(ref, listener, messageDeliveryFailure);
+                    }
+                }
+            }
         }
     }
 

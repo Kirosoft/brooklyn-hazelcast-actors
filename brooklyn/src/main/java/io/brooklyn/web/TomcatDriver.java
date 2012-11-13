@@ -3,16 +3,16 @@ package io.brooklyn.web;
 import com.google.common.io.Files;
 import io.brooklyn.SoftwareProcessDriver;
 import io.brooklyn.util.BashScriptRunner;
-import io.brooklyn.util.JmxConnection;
 
 import java.io.File;
 
 public class TomcatDriver implements SoftwareProcessDriver {
     private final Tomcat tomcat;
-    private final File runDir = Files.createTempDir();
 
     public TomcatDriver(Tomcat tomcat) {
         this.tomcat = tomcat;
+        File runDir = Files.createTempDir();
+        tomcat.runDir.set(runDir.getAbsolutePath());
     }
 
     private String findScript() {
@@ -23,10 +23,11 @@ public class TomcatDriver implements SoftwareProcessDriver {
 
     private BashScriptRunner buildBashScriptRunner() {
         BashScriptRunner runner = new BashScriptRunner(findScript());
-        runner.addEnvironmentVariable("RUN_DIR", runDir.getAbsolutePath());
-        runner.addEnvironmentVariable("HTTP_PORT", tomcat.httPort.get());
-        runner.addEnvironmentVariable("JMX_PORT", tomcat.jmxPort.get());
-        runner.addEnvironmentVariable("SHUTDOWN_PORT", tomcat.shutdownPort.get());
+        runner.addEnvironmentVariable("RUN_DIR", tomcat.runDir);
+        runner.addEnvironmentVariable("HTTP_PORT", tomcat.httPort);
+        runner.addEnvironmentVariable("JMX_PORT", tomcat.jmxPort);
+        runner.addEnvironmentVariable("SHUTDOWN_PORT", tomcat.shutdownPort);
+        runner.addEnvironmentVariable("VERSION", tomcat.version);
         return runner;
     }
 
@@ -45,21 +46,29 @@ public class TomcatDriver implements SoftwareProcessDriver {
 
     @Override
     public void install() {
+        //tomcat.getManagementContext().executeLocal(
+        //        new Runnable() {
+        //            public void run() {
         buildBashScriptRunner().runZeroExitCode("install");
+        //                tomcat.send(new Callback() {
+        //                    public void run() {
+        //                        tomcat.state.set("foo");
+        //                    }
+        //                });
+        //            }
+        //        }
+        //);
     }
 
     @Override
     public void launch() {
         buildBashScriptRunner().runZeroExitCode("launch");
-    }
-
-    public JmxConnection getJmxConnection() {
-        return new JmxConnection("localhost",tomcat.jmxPort.get());
+        tomcat.jmxConnection.init(tomcat.location.get(), tomcat.jmxPort.get());
     }
 
     @Override
     public void stop() {
-        buildBashScriptRunner().run("stop");
+        buildBashScriptRunner().run("terminate");
     }
 
     @Override

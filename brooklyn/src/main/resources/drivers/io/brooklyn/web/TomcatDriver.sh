@@ -53,7 +53,10 @@ function launch() {
 }
 
 function stop() {
-    echo "stop"
+   echo "Starting Stop ========================================================"
+   cd $RUN_DIR/apache-tomcat-$TOMCAT_VERSION
+   bin/catalina.sh stop
+   echo "Finished Stop ========================================================"
 }
 
 function isRunning() {

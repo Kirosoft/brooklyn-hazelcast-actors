@@ -1,8 +1,29 @@
 TODO
 
-- when an entity is created, automatically the properties should be copied to the attributes.
+- the location of the entity is now hard coded.
+
+- the tomcatdriver.isRunning method
+
+- deploying of an artifact
+
+- undeploy of an arifact
+
+- use a config object to create entities.
+
+- active object implementation
+
+- the webcluster should configure the ports of its tomcat instances correctly so that multiple instances
+can run in parallel.
+
+- tomcat artifacts can automatically be discovered
+
+- idea: currently all attributes are written to hazelcast. Some attributes could be transient
 
 DONE
+
+- when an entity is created, automatically the properties should be copied to the attributes.
+
+- Tomcat is able to stop
 
 - Brooklyn: Only when there is a change in the value of the Attribute, then a change happens. So no call
 to the HazelcastMap or to the subscribers.

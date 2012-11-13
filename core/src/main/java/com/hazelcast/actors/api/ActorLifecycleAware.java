@@ -8,5 +8,5 @@ public interface ActorLifecycleAware {
 
     void reactivate();
 
-    void stop();
+    void terminate();
 }

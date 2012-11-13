@@ -23,9 +23,6 @@ public class Main {
         ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
         LocalManagementContext managementContext = new LocalManagementContext();
         actorServiceConfig.addDependency("managementContext", managementContext);
-        actorServiceConfig.setName(ActorService.NAME);
-        actorServiceConfig.setEnabled(true);
-        actorServiceConfig.setClassName(ActorService.class.getName());
         services.addServiceConfig(actorServiceConfig);
 
         HazelcastInstance hzInstance = Hazelcast.newHazelcastInstance(config);

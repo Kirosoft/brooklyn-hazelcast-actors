@@ -66,12 +66,12 @@ public final class AttributeMap {
 
         //todo: this is a dirty hack to make sure the default value is in the map
         //this hack is temporarily needed to deal with a dealock in Hazelcast map.
-        if(value == null){
-            value = (E)entity.getRecipe().getProperties().get(attribute.getName());
-            if(value == null){
+        if (value == null) {
+            value = (E) entity.getRecipe().getProperties().get(attribute.getName());
+            if (value == null) {
                 value = attribute.getDefaultValue();
             }
-            attributeMap.put(attribute.getName(),value);
+            attributeMap.put(attribute.getName(), value);
         }
         return value;
     }
@@ -123,6 +123,12 @@ public final class AttributeMap {
         @Override
         public String getName() {
             return attribute.getName();
+        }
+
+        @Override
+        public String toString() {
+            E value = get();
+            return value == null ? "null" : value.toString();
         }
     }
 

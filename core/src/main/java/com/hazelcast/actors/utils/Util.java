@@ -13,6 +13,14 @@ import java.lang.reflect.Method;
 
 public class Util {
 
+    public static void sleep(long miliseconds){
+        try {
+            Thread.sleep(miliseconds);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+
     public static Method findReceiveMethod(Class actorClass, Class messageClass) {
         while (true) {
             try {
