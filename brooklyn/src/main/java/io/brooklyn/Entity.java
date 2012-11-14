@@ -12,6 +12,8 @@ import io.brooklyn.attributes.ListAttributeRef;
 
 import java.io.Serializable;
 
+import static com.hazelcast.actors.utils.Util.notNull;
+
 public abstract class Entity extends ReflectiveActor {
 
     @Autowired
@@ -37,7 +39,7 @@ public abstract class Entity extends ReflectiveActor {
         return attributeMap.newBasicAttributeRef(attribute);
     }
 
-    public void receive(SubscribeMessage subscribeMessage, ActorRef sender) {
+    public void receive(SubscribeMessage subscribeMessage) {
         attributeMap.subscribe(subscribeMessage.attributeName, subscribeMessage.subscriber);
     }
 
@@ -46,8 +48,8 @@ public abstract class Entity extends ReflectiveActor {
         private final ActorRef subscriber;
 
         public SubscribeMessage(ActorRef subscriber, String attributeName) {
-            this.attributeName = attributeName;
-            this.subscriber = subscriber;
+            this.attributeName = notNull(attributeName,"attributeName");
+            this.subscriber = notNull(subscriber,"subscriber");
         }
 
         public SubscribeMessage(ActorRef subscriber, Attribute attribute) {

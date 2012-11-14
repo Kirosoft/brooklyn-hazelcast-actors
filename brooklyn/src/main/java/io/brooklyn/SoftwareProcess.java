@@ -5,15 +5,16 @@ import io.brooklyn.attributes.BasicAttributeRef;
 
 import java.io.Serializable;
 
-public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> extends Entity {
+public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends Entity {
 
     public static final Attribute<String> LOCATION = new Attribute<String>("location");
     public static final Attribute<String> RUN_DIR = new Attribute<String>("runDir");
-    public static final Attribute<SoftwareProcessEntityStatus> STATE = new Attribute<SoftwareProcessEntityStatus>("state", SoftwareProcessEntityStatus.UNSTARTED);
+    public static final Attribute<SoftwareProcessStatus> STATE =
+            new Attribute<SoftwareProcessStatus>("state", SoftwareProcessStatus.UNSTARTED);
 
     public final BasicAttributeRef<String> location = newBasicAttributeRef(LOCATION);
     public final BasicAttributeRef<String> runDir = newBasicAttributeRef(RUN_DIR);
-    public final BasicAttributeRef<SoftwareProcessEntityStatus> state = newBasicAttributeRef(STATE);
+    public final BasicAttributeRef<SoftwareProcessStatus> state = newBasicAttributeRef(STATE);
 
     private D softwareProcessDriver;
 

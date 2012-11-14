@@ -39,5 +39,5 @@ public interface ManagementContext {
 
     void unregisterApplication(ActorRef app);
 
-    SoftwareProcessDriver newDriver(SoftwareProcessEntity entity);
+    SoftwareProcessDriver newDriver(SoftwareProcess entity);
 }

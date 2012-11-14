@@ -1,5 +1,6 @@
 package io.brooklyn.web;
 
+import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
@@ -7,9 +8,11 @@ import com.hazelcast.actors.utils.MutableMap;
 import io.brooklyn.Entity;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.ListAttributeRef;
+import io.brooklyn.example.Echoer;
 import io.brooklyn.policy.LoadBalancingPolicy;
 
 import java.io.Serializable;
+import java.sql.Ref;
 
 public class WebCluster extends Entity {
 
@@ -20,7 +23,7 @@ public class WebCluster extends Entity {
     public void init(ActorRecipe actorRecipe) throws Exception {
         super.init(actorRecipe);
 
-        ActorRef loadBalancingPolicy = getActorRuntime().newActor(
+        loadBalancingPolicy = getActorRuntime().newActor(
                 LoadBalancingPolicy.class,
                 MutableMap.map(LoadBalancingPolicy.CLUSTER.getName(), self()));
     }

@@ -98,8 +98,6 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     public Operation prepareMigrationOperation(MigrationServiceEvent e) {
         if (e.getReplicaIndex() != 0) return null;
 
-        //System.out.println("prepare:" + e);
-
         ActorPartitionContainer partitionContainer = partitionContainers[e.getPartitionId()];
         return partitionContainer.createMigrationOperation();
     }

@@ -31,8 +31,8 @@ public class Main {
         ActorRuntime actorRuntime = (ActorRuntime) hzInstance.getServiceProxy(ActorService.NAME, "foo");
         managementContext.init(hzInstance, actorRuntime);
 
-        Echoer echor = managementContext.newActiveObject(Echoer.class);
-        echor.echo("Echo this!");
+        //Echoer echor = managementContext.newActiveObject(Echoer.class);
+        //echor.echo("Echo this!");
 
         ActorRef application = actorRuntime.newActor(ExampleWebApplication.class);
         actorRuntime.send(application, new ExampleWebApplication.StartMessage());

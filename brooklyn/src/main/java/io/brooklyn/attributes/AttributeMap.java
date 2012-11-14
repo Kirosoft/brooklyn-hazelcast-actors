@@ -25,12 +25,10 @@ public final class AttributeMap {
         this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributes");
 
 
-        System.out.println("Before");
         for (Map.Entry<String, Object> entry : actorRecipe.getProperties().entrySet()) {
             //todo: for the time being this is disabled since the put blocks.
             //attributeMap.put(entry.getKey(), entry.getValue());
         }
-        System.out.println("After");
     }
 
     public <E> void setAttribute(Attribute<E> attribute, E newValue) {
@@ -45,7 +43,6 @@ public final class AttributeMap {
 
         List<ActorRef> listeners = (List<ActorRef>) attributeMap.get(getListenerKey(attribute.getName()));
         if (listeners == null) {
-            //System.out.println("No Listeners");
             return;
         }
 

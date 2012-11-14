@@ -1,7 +1,5 @@
 package com.hazelcast.actors.utils;
 
-import com.hazelcast.actors.api.ActorRef;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -10,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 public class Util {
 
@@ -23,20 +22,34 @@ public class Util {
 
     public static Method findReceiveMethod(Class actorClass, Class messageClass) {
         while (true) {
-            try {
-                Method receiveMethod = actorClass.getDeclaredMethod("receive", messageClass, ActorRef.class);
-                if (receiveMethod == null) {
-                    receiveMethod = actorClass.getDeclaredMethod("receive", messageClass);
-                }
+            Method receiveMethod = getReceiveMethod(actorClass, messageClass);
+            if (receiveMethod == null) {
+                receiveMethod = getReceiveMethod(actorClass, messageClass);
+            }
 
+            if (receiveMethod != null) {
                 receiveMethod.setAccessible(true);
                 return receiveMethod;
-            } catch (NoSuchMethodException e) {
+            } else {
                 actorClass = actorClass.getSuperclass();
-                if (actorClass == null) {
-                    return null;
-                }
+                if (actorClass == null) return null;
             }
+        }
+    }
+
+    private static Method getReceiveMethod(Class actorClass, Class... args) {
+        try {
+            Method receiveMethod = actorClass.getDeclaredMethod("receive", args);
+            if (!receiveMethod.getReturnType().equals(Void.TYPE)) {
+                throw new RuntimeException("Receive method '" + receiveMethod + "' should return void.");
+            }
+            if (Modifier.isStatic(receiveMethod.getReturnType().getModifiers())) {
+                throw new RuntimeException("Receive method '" + receiveMethod + "' should return void.");
+            }
+
+            return receiveMethod;
+        } catch (NoSuchMethodException e) {
+            return null;
         }
     }
 

@@ -27,6 +27,21 @@ public class JmxConnection {
     public JmxConnection() {
     }
 
+    public boolean isConnected(){
+        getConnection();
+
+        if(connection == null){
+            return false;
+        }
+
+        try {
+            connection.getMBeanCount();
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     public void init(String host, int port) {
         init(String.format("service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi", notNull(host, "host"), port));
     }

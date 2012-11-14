@@ -98,7 +98,7 @@ public class LocalManagementContext implements ManagementContext {
 
     //For the time being it is a simple mechanism; the driver class returned by the entity, is the actual class
     //of the driver instance to be used. In the future we can use the same mechanism as in Brooklyn.
-    public SoftwareProcessDriver newDriver(SoftwareProcessEntity entity) {
+    public SoftwareProcessDriver newDriver(SoftwareProcess entity) {
         notNull(entity, "entity");
 
         Class<? extends SoftwareProcessDriver> driver = entity.getDriverClass();

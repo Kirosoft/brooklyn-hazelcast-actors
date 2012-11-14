@@ -28,8 +28,9 @@ public class ReflectiveActor extends AbstractActor {
      * @param sender
      */
     public void onUnhandledMessage(Object msg, ActorRef sender) {
+        String id = sender == null ? "unknown" : sender.getId();
         throw new UnprocessedException("No receive method found on actor.class: " + getClass().getName() +
-                " for message.class:" + msg.getClass().getName()+" send by: "+sender.getId());
+                " for message.class:" + msg.getClass().getName() + " send by: " + id);
     }
 
     @Override
@@ -41,7 +42,11 @@ public class ReflectiveActor extends AbstractActor {
         }
 
         try {
-            receiveMethod.invoke(this, msg, sender);
+            if (receiveMethod.getParameterTypes().length == 2) {
+                receiveMethod.invoke(this, msg, sender);
+            } else {
+                receiveMethod.invoke(this, msg);
+            }
         } catch (IllegalAccessException e) {
             //This will not be thrown since we make the receiveMethod accessible
             throw new RuntimeException(e);

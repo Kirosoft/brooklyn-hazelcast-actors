@@ -2,9 +2,9 @@ package io.brooklyn.web;
 
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
+import io.brooklyn.SoftwareProcess;
 import io.brooklyn.SoftwareProcessDriver;
-import io.brooklyn.SoftwareProcessEntity;
-import io.brooklyn.SoftwareProcessEntityStatus;
+import io.brooklyn.SoftwareProcessStatus;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.util.JmxConnection;
@@ -27,14 +27,14 @@ import java.io.Serializable;
  * - store the deploy messages in tomcat and process them as soon as you receive the 'Running' event from the
  * driver.
  */
-public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
+public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
     public static final Attribute<Integer> HTTP_PORT = new Attribute<Integer>("httpPort", 8080);
     public static final Attribute<Integer> SHUTDOWN_PORT = new Attribute<Integer>("shutdownPort", 8005);
     public static final Attribute<ActorRef> CLUSTER = new Attribute<ActorRef>("cluster");
     public static final Attribute<Long> USED_HEAP = new Attribute<Long>("usedHeap");
     public static final Attribute<Long> MAX_HEAP = new Attribute<Long>("maxHeap");
-    public static final Attribute<Integer> JMX_PORT = new Attribute<Integer>("jmxPort");
+    public static final Attribute<Integer> JMX_PORT = new Attribute<Integer>("jmxPort",10000);
     public static final Attribute<String> VERSION = new Attribute<String>("version", "7.0.32");
 
     public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(HTTP_PORT);
@@ -45,7 +45,7 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(MAX_HEAP);
     public final BasicAttributeRef<String> version = newBasicAttributeRef(VERSION);
 
-    public JmxConnection jmxConnection = new JmxConnection();
+    public final JmxConnection jmxConnection = new JmxConnection();
 
     @Override
     public Class<? extends SoftwareProcessDriver> getDriverClass() {
@@ -79,27 +79,26 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
         location.set(msg.location);
 
         try {
-            state.set(SoftwareProcessEntityStatus.STARTING);
+            state.set(SoftwareProcessStatus.STARTING);
             TomcatDriver driver = getDriver();
             driver.install();
             driver.customize();
             driver.launch();
-            state.set(SoftwareProcessEntityStatus.RUNNING);
         } catch (Exception e) {
             e.printStackTrace();
-            state.set(SoftwareProcessEntityStatus.FAILURE);
+            state.set(SoftwareProcessStatus.FAILURE);
         }
     }
 
     public void receive(StopTomcatMessage msg) {
         System.out.println("StopTomcat");
         try {
-            state.set(SoftwareProcessEntityStatus.STOPPING);
+            state.set(SoftwareProcessStatus.STOPPING);
             getDriver().stop();
-            state.set(SoftwareProcessEntityStatus.STOPPED);
+            state.set(SoftwareProcessStatus.STOPPED);
         } catch (Exception e) {
             e.printStackTrace();
-            state.set(SoftwareProcessEntityStatus.FAILURE);
+            state.set(SoftwareProcessStatus.FAILURE);
         }
     }
 
@@ -112,6 +111,17 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     }
 
     public void receive(JmxUpdate msg) {
+        if(state.get().equals(SoftwareProcessStatus.UNSTARTED)){
+            return;
+        }
+
+        if(!jmxConnection.isConnected()){
+            state.set(SoftwareProcessStatus.FAILURE);
+            return;
+        }else{
+            state.set(SoftwareProcessStatus.RUNNING);
+        }
+
         CompositeData heapData = (CompositeData) jmxConnection.getAttribute("java.lang:type=Memory", "HeapMemoryUsage");
         if (heapData == null) {
             usedHeap.set(-1L);
