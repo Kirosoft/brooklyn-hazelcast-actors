@@ -5,11 +5,11 @@ import java.util.Map;
 
 public final class MutableMap {
 
-    public static Map<String, Object> of() {
+    public static Map<String, Object> map() {
         return new HashMap<String, Object>();
     }
 
-    public static Map<String, Object> of(String key1, Object value1) {
+    public static Map<String, Object> map(String key1, Object value1) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.put(key1, value1);
         return map;

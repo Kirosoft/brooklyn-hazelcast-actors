@@ -5,6 +5,7 @@ import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.Actors;
+import com.hazelcast.actors.utils.MutableMap;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.config.ServiceConfig;
 import com.hazelcast.core.IMap;
@@ -40,7 +41,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
@@ -118,7 +118,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
     @Override
     public Collection<ServiceProxy> getProxies() {
-        return null;  //To change body of implemented methods use File | Settings | File Templates.
+        return null;  //To change body map implemented methods use File | Settings | File Templates.
     }
 
     private class ActorPartitionContainer {
@@ -152,7 +152,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public void applyChanges(ActorPartitionContent[] changes) {
-            //To change body of created methods use File | Settings | File Templates.
+            //To change body map created methods use File | Settings | File Templates.
         }
     }
 
@@ -276,7 +276,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                 }
             }
 
-            throw new RuntimeException("Actor with ref: "+actorRef+" was not found");
+            throw new RuntimeException("Actor with ref: " + actorRef + " was not found");
         }
 
         @Override
@@ -310,17 +310,23 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
         @Override
         public ActorRef newActor(Class<? extends Actor> actorClass, int partitionId) {
-            notNull(actorClass, "actorClass");
-            ActorRecipe recipe = new ActorRecipe(actorClass, partitionId);
-            return newActor(recipe);
+            return newActor(actorClass,partitionId, MutableMap.map());
         }
 
         @Override
-        public ActorRef newActor(Class<? extends Actor> actorClass) {
+        public ActorRef newActor(Class<? extends Actor> actorClass, int partitionId, Map<String, Object> config) {
             notNull(actorClass, "actorClass");
-            int partitionId = random.nextInt(nodeService.getPartitionCount());
-            ActorRecipe recipe = new ActorRecipe(actorClass, partitionId);
+            if (partitionId == -1) {
+                partitionId = random.nextInt(nodeService.getPartitionCount());
+            }
+            ActorRecipe recipe = new ActorRecipe(actorClass, partitionId,config);
             return newActor(recipe);
+        }
+
+
+        @Override
+        public ActorRef newActor(Class<? extends Actor> actorClass) {
+            return newActor(actorClass, -1);
         }
 
         @Override

@@ -1,5 +1,6 @@
 package io.brooklyn.example;
 
+import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.service.ActorService;
 import com.hazelcast.actors.service.ActorServiceConfig;
@@ -7,7 +8,9 @@ import com.hazelcast.config.Config;
 import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import io.brooklyn.Entity;
 import io.brooklyn.LocalManagementContext;
+import io.brooklyn.web.Tomcat;
 
 import static com.hazelcast.actors.utils.MutableMap.map;
 
@@ -31,7 +34,9 @@ public class Main {
         Echoer echor = managementContext.newActiveObject(Echoer.class);
         echor.echo("Echo this!");
 
-        //ActorApplication actorApplication = new ActorApplication(new Context(), actorRuntime);
+        ActorRef application = actorRuntime.newActor(ExampleWebApplication.class);
+        actorRuntime.send(application, new ExampleWebApplication.StartMessage());
+
         //actorApplication.startServer();
 
         //ActorRef echoer = actorRuntime.newActor(EchoActor.class);
@@ -58,9 +63,12 @@ public class Main {
 
         //  actorRuntime.send(tomcat, new Tomcat.DeployMessage("foo.war"));
 
+        //ActorRef tomcat = actorRuntime.newActor(Tomcat.class, map("httpPort", 8085, "jmxPort", 20001,"shutdownPort", 9001));
+        //actorRuntime.send(tomcat, new Tomcat.StartTomcatMessage("localhost"));
+
         //ActorRef policy = actorRuntime.newActor(Policy.class);
-        //actorRuntime.send(tomcat, new Entity.SubscribeMessage(policy, "maxHeap"));
-        //actorRuntime.send(tomcat, new Entity.SubscribeMessage(policy, "usedHeap"));
+        //actorRuntime.send(tomcat, new Entity.SubscribeMessage(policy, Tomcat.MAX_HEAP));
+        //actorRuntime.send(tomcat, new Entity.SubscribeMessage(policy, Tomcat.USED_HEAP));
 
         //ActorRef application = actorRuntime.newActor(ExampleWebApplication.class);
         //actorRuntime.send(application, new WebCluster.ScaleToMessage(10));

@@ -46,7 +46,7 @@ public class TomcatDriver implements SoftwareProcessDriver {
 
     @Override
     public void install() {
-        //tomcat.getManagementContext().executeLocal(
+        //tomcat.getManagementContext().executeLocally(
         //        new Runnable() {
         //            public void run() {
         buildBashScriptRunner().runZeroExitCode("install");

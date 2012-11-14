@@ -17,7 +17,7 @@ public class Util {
         try {
             Thread.sleep(miliseconds);
         } catch (InterruptedException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            e.printStackTrace();  //To change body map catch statement use File | Settings | File Templates.
         }
     }
 

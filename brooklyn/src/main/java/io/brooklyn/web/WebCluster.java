@@ -1,63 +1,76 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.api.MessageDeliveryFailure;
+import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.api.MessageDeliveryFailure;
+import com.hazelcast.actors.utils.MutableMap;
 import io.brooklyn.Entity;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.ListAttributeRef;
+import io.brooklyn.policy.LoadBalancingPolicy;
 
 import java.io.Serializable;
 
 public class WebCluster extends Entity {
 
-    private ListAttributeRef<ActorRef> childrenAttribute = newListAttribute(new Attribute<ActorRef>("childrenAttribute"));
+    private ListAttributeRef<ActorRef> children = newListAttribute(new Attribute<ActorRef>("children"));
+    ActorRef loadBalancingPolicy;
 
-    public void receive(ChildFailureMessage message, ActorRef sender) {
+    @Override
+    public void init(ActorRecipe actorRecipe) throws Exception {
+        super.init(actorRecipe);
+
+        ActorRef loadBalancingPolicy = getActorRuntime().newActor(
+                LoadBalancingPolicy.class,
+                MutableMap.map(LoadBalancingPolicy.CLUSTER.getName(), self()));
+    }
+
+    public void receive(ChildFailureMessage message) {
         System.out.println("WebCluster.BrokenChild@" + self());
 
         //remove the child.
-        childrenAttribute.remove(message.tomcat);
+        children.remove(message.tomcat);
 
-        //create a new child.
-        ActorRef tomcat = getActorRuntime().newActor(Tomcat.class);
-        childrenAttribute.add(tomcat);
-        getActorRuntime().send(self(), tomcat, new Tomcat.StartTomcatMessage("localhost", self()));
+        receive(new ScaleToMessage(children.size() + 1));
     }
 
-    public void receive(SimulateTomcatFailure msg, ActorRef sender) {
+    public void receive(SimulateTomcatFailure msg) {
         System.out.println("WebCluster.SimulateTomcatFailure@" + self());
-        if (childrenAttribute.isEmpty()) return;
+        if (children.isEmpty()) return;
 
         //select a random tomcat machine to fail
-        ActorRef randomFailedTomcat = childrenAttribute.get(0);
+        ActorRef randomFailedTomcat = children.get(0);
         getActorRuntime().send(self(), randomFailedTomcat, new Tomcat.TomcatFailureMessage());
     }
 
-    public void receive(ScaleToMessage message, ActorRef sender) {
+    public void receive(ScaleToMessage message) {
         System.out.println("WebCluster.ScaleToMessage@" + self());
 
-        int delta = message.size - childrenAttribute.size();
+        int delta = message.size - children.size();
         if (delta == 0) {
             //no change.
         } else if (delta > 0) {
             //we need to add machines.
             for (int k = 0; k < delta; k++) {
                 ActorRef tomcat = getActorRuntime().newActor(Tomcat.class);
-                //monitor the child:
-                getActorRuntime().monitor(self(),tomcat);
-                childrenAttribute.add(tomcat);
+                children.add(tomcat);
+
+                //subscribe the loadbalancingPolicy to the status field of tomcat.
+                getManagementContext().subscribe(loadBalancingPolicy, tomcat, Tomcat.STATE);
+
+                //lets start tomcat.
                 getActorRuntime().send(self(), tomcat, new Tomcat.StartTomcatMessage("localhost", self()));
             }
         } else {
             //we need to remove machines.
             for (int k = 0; k < -delta; k++) {
-                ActorRef tomcat = childrenAttribute.removeFirst();
+                ActorRef tomcat = children.removeFirst();
                 getActorRuntime().send(self(), tomcat, new Tomcat.StopTomcatMessage());
             }
         }
     }
 
-    public void receive(MessageDeliveryFailure messageDeliveryFailure){
+    public void receive(MessageDeliveryFailure messageDeliveryFailure) {
         //todo: react on child processing failures
     }
 

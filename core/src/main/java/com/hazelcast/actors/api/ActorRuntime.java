@@ -20,5 +20,7 @@ public interface ActorRuntime {
 
     ActorRef newActor(Class<? extends Actor> actorClass, int partitionId);
 
+    ActorRef newActor(Class<? extends Actor> actorClass, int partitionId, Map<String, Object> properties);
+
     ActorRef newActor(ActorRecipe recipe);
 }

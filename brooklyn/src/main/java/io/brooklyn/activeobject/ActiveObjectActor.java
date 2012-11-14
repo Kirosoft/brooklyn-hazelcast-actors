@@ -5,6 +5,7 @@ import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 
 public class ActiveObjectActor extends AbstractActor {
 
@@ -15,11 +16,12 @@ public class ActiveObjectActor extends AbstractActor {
         super.init(recipe);
 
         try {
-
-            System.out.println("init start");
             String clazz = (String) recipe.getProperties().get("activeObjectClass");
             activeObject = (AbstractActiveObject) Class.forName(clazz).newInstance();
             activeObject.setActorRef(self());
+
+            Map config = (Map) recipe.getProperties().get("config");
+            activeObject.init(config);
         } catch (Exception e) {
             e.printStackTrace();
             throw e;

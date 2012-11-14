@@ -168,11 +168,11 @@ public final class ActorContainer implements DataSerializable {
 
     @Override
     public void readData(DataInput in) throws IOException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        //To change body map implemented methods use File | Settings | File Templates.
     }
 
     @Override
     public void writeData(DataOutput out) throws IOException {
-        //To change body of implemented methods use File | Settings | File Templates.
+        //To change body map implemented methods use File | Settings | File Templates.
     }
 }

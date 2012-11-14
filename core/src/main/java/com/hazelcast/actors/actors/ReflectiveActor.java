@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 
 /**
  * The ReflectiveActor is an AbstractActor that uses reflection to find the right receive method. So a user
- * doesnt' need to dispatch on the correct message type. For every type of message you are interested in,
+ * doesnt' need to dispatch on the correct message type. For every type map message you are interested in,
  * create a receive method.
  *
  * @author Peter Veentjer.
@@ -22,7 +22,7 @@ public class ReflectiveActor extends AbstractActor {
 
     /**
      * Override this method if you want to execute a certain action when the message is not handled
-     * by any of the receive methods.
+     * by any map the receive methods.
      *
      * @param msg
      * @param sender

@@ -7,28 +7,33 @@ import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.web.WebCluster;
 
+import java.io.Serializable;
+
 public class ExampleWebApplication extends Application {
 
-    private final BasicAttributeRef<ActorRef> webClusterAttribute = newBasicAttributeRef(new Attribute<ActorRef>("web"));
+    private final BasicAttributeRef<ActorRef> web = newBasicAttributeRef(new Attribute<ActorRef>("web"));
 
     @Override
-    public void init(ActorRecipe actorRecipe) throws Exception{
+    public void init(ActorRecipe actorRecipe) throws Exception {
         super.init(actorRecipe);
 
         ActorRef webcluster = getActorRuntime().newActor(WebCluster.class);
-        webClusterAttribute.set(webcluster);
-
-        //actorRuntime.send(webcluster, new WebCluster.ScaleToMessage(10));
-        //actorRuntime.send(webcluster, new WebCluster.SimulateTomcatFailure());
+        web.set(webcluster);
     }
 
-    //public vod
+    public void receive(StartMessage msg) {
+        getActorRuntime().send(web.get(), new WebCluster.ScaleToMessage(1));
+    }
 
-    public void receive(WebCluster.ScaleToMessage msg, ActorRef sender){
+    public void receive(WebCluster.ScaleToMessage msg, ActorRef sender) {
         getActorRuntime().send(sender, msg);
     }
 
-    public void receive(WebCluster.SimulateTomcatFailure msg, ActorRef sender){
+    public void receive(WebCluster.SimulateTomcatFailure msg, ActorRef sender) {
         getActorRuntime().send(sender, msg);
+    }
+
+    public static class StartMessage implements Serializable {
+
     }
 }

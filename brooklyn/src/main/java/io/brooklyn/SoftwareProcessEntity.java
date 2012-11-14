@@ -9,9 +9,11 @@ public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> ext
 
     public static final Attribute<String> LOCATION = new Attribute<String>("location");
     public static final Attribute<String> RUN_DIR = new Attribute<String>("runDir");
+    public static final Attribute<SoftwareProcessEntityStatus> STATE = new Attribute<SoftwareProcessEntityStatus>("state", SoftwareProcessEntityStatus.UNSTARTED);
 
     public final BasicAttributeRef<String> location = newBasicAttributeRef(LOCATION);
     public final BasicAttributeRef<String> runDir = newBasicAttributeRef(RUN_DIR);
+    public final BasicAttributeRef<SoftwareProcessEntityStatus> state = newBasicAttributeRef(STATE);
 
     private D softwareProcessDriver;
 
@@ -19,7 +21,7 @@ public abstract class SoftwareProcessEntity<D extends SoftwareProcessDriver> ext
 
     public D getDriver() {
         if (softwareProcessDriver == null) {
-            softwareProcessDriver = (D) getManagementContext().createDriver(this);
+            softwareProcessDriver = (D) getManagementContext().newDriver(this);
         }
         return softwareProcessDriver;
     }

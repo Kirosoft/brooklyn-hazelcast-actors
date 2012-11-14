@@ -4,6 +4,7 @@ import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.SoftwareProcessDriver;
 import io.brooklyn.SoftwareProcessEntity;
+import io.brooklyn.SoftwareProcessEntityStatus;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.util.JmxConnection;
@@ -12,7 +13,7 @@ import javax.management.openmbean.CompositeData;
 import java.io.Serializable;
 
 /**
- * The current start of tomcat is a blocking operation, meaning: as long as the installation (install/customize/launch)
+ * The current start map tomcat is a blocking operation, meaning: as long as the installation (install/customize/launch)
  * is executing, the actor will not be processing any other messages.
  *
  * This is undesirable, and also a violation what you normally want to do with actors: keep processing messages
@@ -30,7 +31,6 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
 
     public static final Attribute<Integer> HTTP_PORT = new Attribute<Integer>("httpPort", 8080);
     public static final Attribute<Integer> SHUTDOWN_PORT = new Attribute<Integer>("shutdownPort", 8005);
-    public static final Attribute<String> STATE = new Attribute<String>("state", "stopped");
     public static final Attribute<ActorRef> CLUSTER = new Attribute<ActorRef>("cluster");
     public static final Attribute<Long> USED_HEAP = new Attribute<Long>("usedHeap");
     public static final Attribute<Long> MAX_HEAP = new Attribute<Long>("maxHeap");
@@ -40,7 +40,6 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
     public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(HTTP_PORT);
     public final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(SHUTDOWN_PORT);
     public final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(JMX_PORT);
-    public final BasicAttributeRef<String> state = newBasicAttributeRef(STATE);
     public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(CLUSTER);
     public final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(USED_HEAP);
     public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(MAX_HEAP);
@@ -62,49 +61,49 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
         getActorRuntime().repeat(self(), new JmxUpdate(), 1000);
     }
 
-    public void receive(UndeployMessage msg, ActorRef sender) {
+    public void receive(UndeployMessage msg) {
         System.out.println("Undeploy");
         getDriver().undeploy();
     }
 
-    public void receive(DeployMessage msg, ActorRef sender) {
+    public void receive(DeployMessage msg) {
         System.out.println("Deploying:" + msg.url);
-        //todo: would be best to offload the work of the potentially long copy action
+        //todo: would be best to offload the work map the potentially long copy action
         getDriver().deploy(msg.url);
     }
 
-    public void receive(StartTomcatMessage msg, ActorRef sender) {
+    public void receive(StartTomcatMessage msg) {
         System.out.println("StartTomcat");
 
         cluster.set(msg.cluster);
         location.set(msg.location);
 
         try {
-            state.set("Starting");
+            state.set(SoftwareProcessEntityStatus.STARTING);
             TomcatDriver driver = getDriver();
             driver.install();
             driver.customize();
             driver.launch();
-            state.set("Started");
+            state.set(SoftwareProcessEntityStatus.RUNNING);
         } catch (Exception e) {
             e.printStackTrace();
-            state.set("On fire");
+            state.set(SoftwareProcessEntityStatus.FAILURE);
         }
     }
 
-    public void receive(StopTomcatMessage msg, ActorRef sender) {
+    public void receive(StopTomcatMessage msg) {
         System.out.println("StopTomcat");
         try {
-            state.set("Stopping");
+            state.set(SoftwareProcessEntityStatus.STOPPING);
             getDriver().stop();
-            state.set("Stopped");
+            state.set(SoftwareProcessEntityStatus.STOPPED);
         } catch (Exception e) {
             e.printStackTrace();
-            state.set("On fire");
+            state.set(SoftwareProcessEntityStatus.FAILURE);
         }
     }
 
-    public void receive(TomcatFailureMessage msg, ActorRef sender) {
+    public void receive(TomcatFailureMessage msg) {
         System.out.println("TomcatFailure at: " + self());
         ActorRef cluster = this.cluster.get();
         if (cluster != null) {
@@ -112,7 +111,7 @@ public class Tomcat extends SoftwareProcessEntity<TomcatDriver> {
         }
     }
 
-    public void receive(JmxUpdate msg, ActorRef sender) {
+    public void receive(JmxUpdate msg) {
         CompositeData heapData = (CompositeData) jmxConnection.getAttribute("java.lang:type=Memory", "HeapMemoryUsage");
         if (heapData == null) {
             usedHeap.set(-1L);

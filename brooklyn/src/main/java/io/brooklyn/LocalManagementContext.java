@@ -1,6 +1,5 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.utils.MutableMap;
@@ -15,10 +14,9 @@ import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,12 +44,12 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public void executeLocal(Runnable task) {
+    public void executeLocally(Runnable task) {
         localExecutor.execute(task);
     }
 
     @Override
-    public void executeSomewhere(Runnable task) {
+    public void executeAnywhere(Runnable task) {
         distributedExecutorService.execute(task);
     }
 
@@ -60,13 +58,21 @@ public class LocalManagementContext implements ManagementContext {
         return applicationsMap.keySet();
     }
 
-     @Override
+    @Override
     public <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass) {
+        //todo: there should be a way to signal to the actorRuntime that we want a random location
+        int partitionId = -1;
+        return newActiveObject(activeObjectClass, partitionId, MutableMap.map());
+
+    }
+
+    @Override
+    public <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config) {
         notNull(activeObjectClass, "activeObjectClass");
-        int partitionId = 0;//todo
-        ActorRecipe actorRecipe = new ActorRecipe(ActiveObjectActor.class, partitionId,
-                MutableMap.of("activeObjectClass", activeObjectClass.getName()));
-        final ActorRef ref = actorRuntime.newActor(actorRecipe);
+
+
+        Map<String, Object> actorConfig = MutableMap.map("activeObjectClass", activeObjectClass.getName(), "config", config);
+        final ActorRef ref = actorRuntime.newActor(ActiveObjectActor.class, partitionId, actorConfig);
 
         return (A) Enhancer.create(activeObjectClass, new MethodInterceptor() {
             @Override
@@ -92,7 +98,7 @@ public class LocalManagementContext implements ManagementContext {
 
     //For the time being it is a simple mechanism; the driver class returned by the entity, is the actual class
     //of the driver instance to be used. In the future we can use the same mechanism as in Brooklyn.
-    public SoftwareProcessDriver createDriver(SoftwareProcessEntity entity) {
+    public SoftwareProcessDriver newDriver(SoftwareProcessEntity entity) {
         notNull(entity, "entity");
 
         Class<? extends SoftwareProcessDriver> driver = entity.getDriverClass();

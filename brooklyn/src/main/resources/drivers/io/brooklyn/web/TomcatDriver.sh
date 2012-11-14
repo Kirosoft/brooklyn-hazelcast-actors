@@ -1,7 +1,5 @@
 #!/bin/bash
 
-TOMCAT_VERSION=7.0.32
-
 ${EnvironmentVariables}
 
 function deploy(){
