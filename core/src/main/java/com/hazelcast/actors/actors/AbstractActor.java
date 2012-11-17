@@ -21,13 +21,12 @@ public abstract class AbstractActor implements Actor,
         this.actorContext = notNull(actorContext, "actorContext");
     }
 
-    public final void send(Object msg) {
-        assertActorContextNotNull();
-        actorContext.getActorRuntime().send(self(), msg);
+    public final void send(ActorRef destination, Object msg) {
+        getActorContext().getActorRuntime().send(self(), destination, msg);
     }
 
     @Override
-    public void init() throws Exception {
+    public void activate() throws Exception {
         //no-op
     }
 
@@ -46,29 +45,26 @@ public abstract class AbstractActor implements Actor,
         //no-op
     }
 
-    public final ActorRef self() {
-        assertActorContextNotNull();
-        return actorContext.self();
-    }
-
-    public final ActorRecipe getRecipe() {
-        assertActorContextNotNull();
-        return actorContext.getRecipe();
-    }
-
-    public final ActorRuntime getActorRuntime() {
-        assertActorContextNotNull();
-        return actorContext.getActorRuntime();
-    }
-
-    public final HazelcastInstance getHzInstance() {
-        assertActorContextNotNull();
-        return actorContext.getHazelcastInstance();
-    }
-
-    private void assertActorContextNotNull() {
+    public final ActorContext getActorContext() {
         if (actorContext == null) {
             throw new IllegalStateException("actorContext has not yet been set");
         }
+        return actorContext;
+    }
+
+    public final ActorRef self() {
+        return getActorContext().self();
+    }
+
+    public final ActorRecipe getRecipe() {
+        return getActorContext().getRecipe();
+    }
+
+    public final ActorRuntime getActorRuntime() {
+        return getActorContext().getActorRuntime();
+    }
+
+    public final HazelcastInstance getHzInstance() {
+        return getActorContext().getHazelcastInstance();
     }
 }

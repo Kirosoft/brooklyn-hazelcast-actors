@@ -1,7 +1,7 @@
 package com.hazelcast.actors.actors;
 
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.UnprocessedException;
+import com.hazelcast.actors.api.exceptions.UnprocessedException;
 import com.hazelcast.actors.utils.Util;
 
 import java.lang.reflect.InvocationTargetException;
@@ -9,7 +9,7 @@ import java.lang.reflect.Method;
 
 /**
  * The ReflectiveActor is an AbstractActor that uses reflection to find the right receive method. So a user
- * doesnt' need to dispatch on the correct message type. For every type map message you are interested in,
+ * doesn't need to dispatch on the correct message type. For every type map message you are interested in,
  * create a receive method.
  *
  * @author Peter Veentjer.

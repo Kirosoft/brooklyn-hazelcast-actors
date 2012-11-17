@@ -1,10 +1,10 @@
 package com.hazelcast.actors.impl;
 
 import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorInstantiationException;
+import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.Autowired;
+import com.hazelcast.actors.api.Injected;
 import com.hazelcast.actors.utils.MutableMap;
 import org.junit.Test;
 
@@ -63,7 +63,7 @@ public class BasicActorFactoryTest {
     }
 
     private static class SomeActor implements Actor {
-        @Autowired
+        @Injected
         private String autowiredField;
 
         private String nonAutowiredField;
@@ -82,7 +82,7 @@ public class BasicActorFactoryTest {
     }
 
     private static class SomeActorWithStaticAutowiredField implements Actor {
-        @Autowired
+        @Injected
         private static String autowiredField;
 
         @Override
@@ -99,7 +99,7 @@ public class BasicActorFactoryTest {
     }
 
     private static class SomeActorWithFinalAutowiredField implements Actor {
-        @Autowired
+        @Injected
         private final String autowiredField = "nonsense";
 
         @Override

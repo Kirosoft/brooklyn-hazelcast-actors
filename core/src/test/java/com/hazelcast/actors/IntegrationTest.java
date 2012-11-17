@@ -1,6 +1,5 @@
 package com.hazelcast.actors;
 
-import com.hazelcast.actors.actors.AbstractActor;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
@@ -11,9 +10,6 @@ import com.hazelcast.core.HazelcastInstance;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Vector;
 
 import static com.hazelcast.actors.utils.Util.sleep;
 import static org.junit.Assert.fail;
@@ -86,11 +82,12 @@ public class IntegrationTest {
         assertReceived(monitor, new MessageDeliveryFailure(target, ex));
     } */
 
+
     private void assertReceived(ActorRef ref, Object msg) {
         TestActor actor = (TestActor) actorRuntime.getActor(ref);
         for (int k = 0; k < 60; k++) {
-            System.out.println(actor.messages);
-            if (actor.messages.contains(msg)) {
+            System.out.println(actor.getMessages());
+            if (actor.getMessages().contains(msg)) {
                 return;
             }
             sleep(1000);
@@ -98,16 +95,4 @@ public class IntegrationTest {
         fail();
     }
 
-    public static class TestActor extends AbstractActor {
-        private List messages = new Vector();
-
-        @Override
-        public void receive(Object msg, ActorRef sender) throws Exception {
-            System.out.println(msg);
-            messages.add(msg);
-            if (msg instanceof Exception) {
-                throw (Exception) msg;
-            }
-        }
-    }
 }

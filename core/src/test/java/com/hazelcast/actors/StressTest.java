@@ -15,6 +15,8 @@ import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.junit.Assert.fail;
+
 public class StressTest {
     private static ActorService.ActorRuntimeProxyImpl actorRuntime;
     private static HazelcastInstance hzInstance;
@@ -43,36 +45,49 @@ public class StressTest {
     public void test() {
         ActorRef ref = actorRuntime.newActor(DetectingActor.class);
 
-        for (int k = 0; k < 10000; k++) {
+        int count = 1000;
+        for (int k = 0; k < count; k++) {
             actorRuntime.send(ref, "");
         }
 
-        Util.sleep(60000);
+        DetectingActor actor = (DetectingActor) actorRuntime.getActor(ref);
+        actor.assertCountEventually(count);
     }
 
     private static class DetectingActor implements Actor {
-        private final AtomicInteger foo = new AtomicInteger();
-        private final AtomicInteger count = new AtomicInteger();
+        private final AtomicInteger concurrentAccessCounter = new AtomicInteger();
+        private final AtomicInteger counter = new AtomicInteger();
 
         public DetectingActor() {
         }
 
         @Override
         public void receive(Object msg, ActorRef sender) throws Exception {
-            if (foo.incrementAndGet() > 0) {
+            if (concurrentAccessCounter.incrementAndGet() > 0) {
                 failureCount.incrementAndGet();
             }
 
             Util.sleep(10);
 
-            int c = count.incrementAndGet();
+            int c = counter.incrementAndGet();
 
             if (c % 100 == 0) {
                 System.out.println("at: " + c);
             }
 
 
-            foo.decrementAndGet();
+            concurrentAccessCounter.decrementAndGet();
+        }
+
+        public void assertCountEventually(long count) {
+            for (int k = 0; k < 600; k++) {
+                if (counter.get() == count) return;
+                Util.sleep(1000);
+
+            }
+            fail();
         }
     }
+
+
 }

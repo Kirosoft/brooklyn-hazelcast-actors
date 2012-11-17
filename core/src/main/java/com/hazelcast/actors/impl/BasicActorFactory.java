@@ -2,12 +2,13 @@ package com.hazelcast.actors.impl;
 
 import com.hazelcast.actors.api.Actor;
 import com.hazelcast.actors.api.ActorFactory;
-import com.hazelcast.actors.api.ActorInstantiationException;
 import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.Autowired;
+import com.hazelcast.actors.api.Injected;
+import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -44,10 +45,11 @@ public class BasicActorFactory implements ActorFactory {
             constructor.setAccessible(true);
             actor = constructor.newInstance();
         } catch (NoSuchMethodError e) {
-            throw new ActorInstantiationException(format("Actor class '%s' is missing mandatory no-arg constructor",
+            throw new ActorInstantiationException(format("Failed to instantiate Actor class '%s' is missing mandatory no-arg constructor",
                     recipe.getActorClass().getName()), e);
         } catch (Exception e) {
-            throw new ActorInstantiationException("Failed to instantiate actor using recipe " + recipe, e);
+            throw new ActorInstantiationException(
+                    format("Failed to instantiate Actor class '%s' using recipe %s", recipe.getActorClass().getName(),recipe), e);
         }
 
         for (FieldSetter setter : getFieldSetters(recipe.getActorClass())) {
@@ -84,7 +86,7 @@ public class BasicActorFactory implements ActorFactory {
             do {
                 Field[] fields = clazz.getDeclaredFields();
                 for (Field field : fields) {
-                    if (field.isAnnotationPresent(Autowired.class)) {
+                    if (field.isAnnotationPresent(Injected.class)) {
                         field.setAccessible(true);
 
                         if (Modifier.isStatic(field.getModifiers())) {

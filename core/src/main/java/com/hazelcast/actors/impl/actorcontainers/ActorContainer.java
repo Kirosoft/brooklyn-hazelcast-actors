@@ -1,4 +1,4 @@
-package com.hazelcast.actors.impl;
+package com.hazelcast.actors.impl.actorcontainers;
 
 import com.hazelcast.actors.api.Actor;
 import com.hazelcast.actors.api.ActorFactory;
@@ -6,11 +6,13 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.spi.impl.NodeServiceImpl;
 
-public interface ActorContainer {
+public interface ActorContainer<A extends Actor> {
 
-    Actor getActor();
+    ActorRef getActorRef();
 
-    void init(ActorRuntime actorRuntime, NodeServiceImpl nodeService, ActorFactory actorFactory);
+    A getActor();
+
+    A activate(ActorRuntime actorRuntime, NodeServiceImpl nodeService, ActorFactory actorFactory);
 
     void terminate() throws Exception;
 

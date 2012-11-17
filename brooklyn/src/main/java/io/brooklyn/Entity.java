@@ -1,10 +1,8 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.actors.AbstractActor;
 import com.hazelcast.actors.actors.ReflectiveActor;
-import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.Autowired;
+import com.hazelcast.actors.api.Injected;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.AttributeMap;
 import io.brooklyn.attributes.BasicAttributeRef;
@@ -16,14 +14,14 @@ import static com.hazelcast.actors.utils.Util.notNull;
 
 public abstract class Entity extends ReflectiveActor {
 
-    @Autowired
+    @Injected
     private ManagementContext managementContext;
 
     private AttributeMap attributeMap = new AttributeMap(this);
 
     @Override
-    public void init() throws Exception{
-        super.init();
+    public void activate() throws Exception{
+        super.activate();
         attributeMap.init(getHzInstance(), getRecipe());
     }
 

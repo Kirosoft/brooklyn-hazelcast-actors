@@ -12,8 +12,8 @@ public class ActiveObjectActor extends AbstractActor {
     private AbstractActiveObject activeObject;
 
     @Override
-    public void init() throws Exception {
-        super.init();
+    public void activate() throws Exception {
+        super.activate();
 
         try {
             ActorRecipe recipe = getRecipe();

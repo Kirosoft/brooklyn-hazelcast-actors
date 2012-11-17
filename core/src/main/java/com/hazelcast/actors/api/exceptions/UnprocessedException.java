@@ -1,4 +1,4 @@
-package com.hazelcast.actors.api;
+package com.hazelcast.actors.api.exceptions;
 
 public class UnprocessedException extends RuntimeException{
 

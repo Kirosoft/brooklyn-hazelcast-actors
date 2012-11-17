@@ -1,6 +1,5 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.SoftwareProcess;
 import io.brooklyn.SoftwareProcessDriver;
@@ -53,8 +52,8 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     @Override
-    public void init()throws Exception {
-        super.init();
+    public void activate()throws Exception {
+        super.activate();
 
         //the actor will register itself, so that every second it gets a message to update is jmx information
         //if that is available.

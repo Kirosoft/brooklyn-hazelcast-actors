@@ -1,6 +1,5 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
 import com.hazelcast.actors.utils.MutableMap;
@@ -18,8 +17,8 @@ public class WebCluster extends Entity {
     private BasicAttributeRef<ActorRef> loadBalancingPolicy = newBasicAttributeRef(new Attribute<ActorRef>("loadBalancingPolicy"));
 
     @Override
-    public void init() throws Exception {
-        super.init();
+    public void activate() throws Exception {
+        super.activate();
 
         loadBalancingPolicy.set(getActorRuntime().newActor(
                 LoadBalancingPolicy.class,

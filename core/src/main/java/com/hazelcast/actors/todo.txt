@@ -29,7 +29,14 @@ TODO
 - weak guarantees currently for a started entity.. when you get back a ref, you,have no
 idea if for example the entity is registered in the namespace.
 
+- mechanism to choose between the different actor containers.
+
+- mechanism to build mailboxes
+
 DONE
+
+
+- the ActorRef is now PartitionAware. So when used in a Hazelcastmap, the correct partition will be used.
 
 - cleaning up of execution
 

@@ -1,16 +1,22 @@
 package com.hazelcast.actors.api;
 
 import com.hazelcast.actors.utils.Util;
+import com.hazelcast.core.PartitionAware;
 
 import java.io.Serializable;
 
-public final class ActorRef implements Serializable {
+public final class ActorRef implements Serializable, PartitionAware<Integer> {
     private final String id;
     private final int partitionId;
 
     public ActorRef(String id, int partitionId) {
         this.id = Util.notNull(id, "id");
         this.partitionId = partitionId;
+    }
+
+    @Override
+    public Integer getPartitionKey() {
+        return partitionId;
     }
 
     public String getId() {

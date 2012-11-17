@@ -6,6 +6,8 @@ import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.Actors;
+import com.hazelcast.actors.impl.actorcontainers.ActorContainer;
+import com.hazelcast.actors.impl.actorcontainers.ActorContainerFactory;
 import com.hazelcast.actors.utils.MutableMap;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.config.ServiceConfig;
@@ -37,8 +39,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -50,14 +52,15 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     public static final String NAME = "ActorService";
 
     private NodeService nodeService;
-    private final ForkJoinPool executor = new ForkJoinPool(16, ForkJoinPool.defaultForkJoinWorkerThreadFactory, null, true);
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
     private ILogger logger;
     private ActorPartitionContainer[] partitionContainers;
     private final ConcurrentMap<String, ActorRuntimeProxyImpl> actorSystems = new ConcurrentHashMap<>();
+    private final ExecutorService executor = Executors.newScheduledThreadPool(10);
     private ActorServiceConfig actorConfig;
     private IMap<ActorRef, Set<ActorRef>> monitorMap;
     private ActorFactory actorFactory;
+    private ActorContainerFactory actorContainerFactory;
 
     @Override
     public void destroy() {
@@ -69,8 +72,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         this.logger = nodeService.getLogger(ActorService.class.getName());
         this.actorConfig = findActorServiceConfig();
         this.actorFactory = actorConfig.getActorFactory();
+        this.actorContainerFactory = actorConfig.getActorContainerFactory();
+        this.actorContainerFactory.init(monitorMap);
         this.monitorMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("monitorMap");
         int partitionCount = nodeService.getPartitionCount();
+
         this.partitionContainers = new ActorPartitionContainer[partitionCount];
 
         for (int partitionId = 0; partitionId < partitionCount; partitionId++) {
@@ -157,7 +163,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public void applyChanges(ActorPartitionContent[] changes) {
-            //To change body map created methods use File | Settings | File Templates.
+            //todo
         }
     }
 
@@ -191,7 +197,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             }
         }
 
-        public ActorRef createActor(final ActorRecipe recipe) {
+        public ActorRef createActor(final ActorRecipe recipe) throws Exception {
             final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), recipe.getPartitionId());
 
             Future<ActorContainer> future = executor.submit(
@@ -199,17 +205,29 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                         @Override
                         public ActorContainer call() {
                             try {
-                                ActorContainer actorContainer = new SimpleActorContainer(recipe, ref, executor, monitorMap);
-                                actorContainer.init(actorRuntime, (NodeServiceImpl) nodeService, actorFactory);
+                                ActorContainer actorContainer = actorContainerFactory.newContainer(ref, recipe);
+                                actorContainer.activate(actorRuntime, (NodeServiceImpl) nodeService, actorFactory);
                                 return actorContainer;
-                            } catch (RuntimeException e) {
+                            } catch (Exception e) {
                                 e.printStackTrace();
-                                return null;
+                                throw e;
                             }
                         }
                     }
             );
 
+            try {
+                future.get();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof Exception) {
+                    throw (Exception) cause;
+                } else {
+                    throw new RuntimeException(e);
+                }
+            }
             actors.put(ref.getId(), future);
             return ref;
         }
@@ -222,14 +240,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
 
             try {
                 final ActorContainer actorContainer = future.get();
-                actorContainer.post(null, new Actors.TerminateActor());
+                actorContainer.post(null, new Actors.Terminate());
                 throw new RuntimeException();
                 /*
-                executor.execute(new Runnable() {
+                forkJoinPool.execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            actorContainer.processMessage(executor);
+                            actorContainer.processMessage(forkJoinPool);
                             actors.remove(target.getId());
                             actorContainer.terminate();
                         } catch (Exception e) {
@@ -255,8 +273,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             this.name = name;
         }
 
+        public NodeService getNodeService() {
+            return nodeService;
+        }
+
         public Actor getActor(ActorRef actorRef) {
             ActorPartitionContainer container = partitionContainers[actorRef.getPartitionId()];
+
+            //todo: nastyyy
             for (int k = 0; k < 60; k++) {
                 Future<ActorContainer> future = container.getPartition(name).actors.get(actorRef.getId());
                 if (future == null) {
@@ -272,7 +296,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                 }
             }
 
-            throw new RuntimeException("Actor with ref: " + actorRef + " was not found");
+            throw new RuntimeException("Actor with getActorRef: " + actorRef + " was not found");
         }
 
         @Override
@@ -342,11 +366,37 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             try {
                 Invocation invocation = nodeService.createInvocationBuilder(NAME, createOperation, recipe.getPartitionId()).build();
                 Future f = invocation.invoke();
-                return (ActorRef) nodeService.toObject(f.get());
+                Object result = nodeService.toObject(f.get());
+                if (result instanceof Throwable) {
+                    Throwable throwable = (Throwable) result;
+                    StackTraceElement[] clientSideStackTrace = Thread.currentThread().getStackTrace();
+                    Util.fixStackTrace(throwable, clientSideStackTrace);
+                    if (throwable instanceof RuntimeException) {
+                        throw (RuntimeException) throwable;
+                    } else {
+                        throw new RuntimeException(throwable);
+                    }
+                } else {
+                    return (ActorRef) result;
+                }
             } catch (RuntimeException e) {
                 throw e;
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
+            }
+        }
+
+        @Override
+        public void send(ActorRef sender, Collection<ActorRef> destinations, Object msg) {
+            notNull(destinations, "destinations");
+            notNull(msg, "msg");
+
+            if (destinations.isEmpty()) {
+                return;
+            }
+
+            for (ActorRef destination : destinations) {
+                send(sender, destination, msg);
             }
         }
 
@@ -361,7 +411,17 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             try {
                 Invocation invocation = nodeService.createInvocationBuilder(NAME, sendOperation, destination.getPartitionId()).build();
                 Future f = invocation.invoke();
-                f.get();
+                Object result = f.get();
+                if (result instanceof Throwable) {
+                    Throwable throwable = (Throwable) result;
+                    StackTraceElement[] clientSideStackTrace = Thread.currentThread().getStackTrace();
+                    Util.fixStackTrace(throwable, clientSideStackTrace);
+                    if (throwable instanceof RuntimeException) {
+                        throw (RuntimeException) throwable;
+                    } else {
+                        throw new RuntimeException(throwable);
+                    }
+                }
             } catch (RuntimeException e) {
                 throw e;
             } catch (Throwable throwable) {
@@ -440,8 +500,12 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             ActorService actorService = (ActorService) getService();
             ActorPartitionContainer actorPartitionContainer = actorService.partitionContainers[getPartitionId()];
             ActorPartition actorPartition = actorPartitionContainer.getPartition(name);
-            ActorRef ref = actorPartition.createActor(actorRecipe);
-            getResponseHandler().sendResponse(actorService.nodeService.toData(ref));
+            try {
+                ActorRef ref = actorPartition.createActor(actorRecipe);
+                getResponseHandler().sendResponse(actorService.nodeService.toData(ref));
+            } catch (Exception e) {
+                getResponseHandler().sendResponse(actorService.nodeService.toData(e));
+            }
         }
     }
 
