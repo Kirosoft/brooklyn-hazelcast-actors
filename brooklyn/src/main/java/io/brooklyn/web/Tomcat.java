@@ -53,8 +53,8 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     @Override
-    public void init(ActorRecipe actorRecipe)throws Exception {
-        super.init(actorRecipe);
+    public void init()throws Exception {
+        super.init();
 
         //the actor will register itself, so that every second it gets a message to update is jmx information
         //if that is available.
@@ -116,11 +116,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
 
         if(!jmxConnection.isConnected()){
-            state.set(SoftwareProcessStatus.FAILURE);
+            state.set(SoftwareProcessStatus.UNREACHABLE);
             return;
-        }else{
-            state.set(SoftwareProcessStatus.RUNNING);
         }
+
+        state.set(SoftwareProcessStatus.RUNNING);
 
         CompositeData heapData = (CompositeData) jmxConnection.getAttribute("java.lang:type=Memory", "HeapMemoryUsage");
         if (heapData == null) {

@@ -19,6 +19,8 @@ can run in parallel.
 
 - idea: currently all attributes are written to hazelcast. Some attributes could be transient
 
+- with the namespace stuff concurrent behavior is a bit unclear; e.g. it could be that you miss the registration
+
 DONE
 
 - when an entity is created, automatically the properties should be copied to the attributes.

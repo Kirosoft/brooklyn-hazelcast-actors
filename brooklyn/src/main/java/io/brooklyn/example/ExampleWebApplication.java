@@ -13,13 +13,7 @@ public class ExampleWebApplication extends Entity {
 
     private final BasicAttributeRef<ActorRef> web = newBasicAttributeRef(new Attribute<ActorRef>("web"));
 
-    @Override
-    public void init(ActorRecipe actorRecipe) throws Exception {
-        super.init(actorRecipe);
-
-    }
-
-    public void receive(StartMessage msg) {
+      public void receive(StartMessage msg) {
          ActorRef webcluster = getActorRuntime().newActor(WebCluster.class);
         web.set(webcluster);
         getActorRuntime().send(web.get(), new WebCluster.ScaleToMessage(1));

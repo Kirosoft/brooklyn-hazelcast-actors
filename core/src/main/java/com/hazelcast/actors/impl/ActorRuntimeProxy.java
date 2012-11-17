@@ -1,4 +1,4 @@
-package com.hazelcast.actors.service;
+package com.hazelcast.actors.impl;
 
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.spi.ServiceProxy;

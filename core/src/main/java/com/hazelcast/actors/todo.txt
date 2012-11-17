@@ -6,8 +6,6 @@ TODO
 
 - add migration
 
-- cleaning up of execution
-
 - a future returned by the send
 
 - using the fork join executor.
@@ -16,15 +14,11 @@ TODO
 
 - receive method can be cached.
 
-- deal with receive method failure in the actorcontainer
-
 - when a message is send, currently you won't get any guarantee if it is delivered.
 
 - the mailbox of the actor is not durable, it is an ordinary blocking queue.
 
 - the ability to create durable/non durable actors.
-
-- receive methods should be able to throw checked exception
 
 - when sending of a message fails because actor doesn't exist, actor should be notified
 
@@ -32,7 +26,22 @@ TODO
 
 - caching of receive method.
 
+- weak guarantees currently for a started entity.. when you get back a ref, you,have no
+idea if for example the entity is registered in the namespace.
+
 DONE
+
+- cleaning up of execution
+
+- receive methods should be able to throw checked exception
+
+- deal with receive method failure in the actorcontainer
+
+- reduced the size the actor, everything can be accessed from the actor-context.
+
+- remove unwanted runnable creation for every message in the ActorContainer
+
+- the ActorContainer is now completely responsible for processing the message. Not spread over the system
 
 - it should be possible to do a receive without a sender
 

@@ -2,15 +2,17 @@ package io.brooklyn.example;
 
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
-import com.hazelcast.actors.service.ActorService;
-import com.hazelcast.actors.service.ActorServiceConfig;
+import com.hazelcast.actors.impl.ActorService;
+import com.hazelcast.actors.impl.ActorServiceConfig;
+import com.hazelcast.actors.impl.BasicActorFactory;
+import com.hazelcast.actors.utils.MutableMap;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import io.brooklyn.Entity;
 import io.brooklyn.LocalManagementContext;
-import io.brooklyn.web.Tomcat;
+
+import java.util.Map;
 
 import static com.hazelcast.actors.utils.MutableMap.map;
 
@@ -21,9 +23,11 @@ public class Main {
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(true);
         Services services = config.getServicesConfig();
 
-        ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
         LocalManagementContext managementContext = new LocalManagementContext();
-        actorServiceConfig.addDependency("managementContext", managementContext);
+
+        Map<String,Object> dependencies = MutableMap.map("managementContext",managementContext);
+        ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
+        actorServiceConfig.setActorFactory(new BasicActorFactory(dependencies));
         services.addServiceConfig(actorServiceConfig);
 
         HazelcastInstance hzInstance = Hazelcast.newHazelcastInstance(config);
@@ -54,12 +58,12 @@ public class Main {
 
 
         //ActorRef echor = actorRuntime.newActor(EchoActor.class);
-        //managementContext.subscribe(echor, tomcat, Tomcat.MAX_HEAP);
-        //managementContext.subscribe(echor, tomcat, Tomcat.USED_HEAP);
-        //managementContext.subscribe(echor, tomcat1, Tomcat.MAX_HEAP);
-        //managementContext.subscribe(echor, tomcat1, Tomcat.USED_HEAP);
-        //managementContext.subscribe(echor, tomcat2, Tomcat.MAX_HEAP);
-        //managementContext.subscribe(echor, tomcat2, Tomcat.USED_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat, Tomcat.MAX_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat, Tomcat.USED_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat1, Tomcat.MAX_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat1, Tomcat.USED_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat2, Tomcat.MAX_HEAP);
+        //managementContext.subscribeToAttribute(echor, tomcat2, Tomcat.USED_HEAP);
 
         //  actorRuntime.send(tomcat, new Tomcat.DeployMessage("foo.war"));
 

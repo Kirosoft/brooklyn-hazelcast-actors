@@ -16,6 +16,7 @@ import net.sf.cglib.proxy.MethodProxy;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -27,35 +28,36 @@ import static com.hazelcast.actors.utils.Util.notNull;
 public class LocalManagementContext implements ManagementContext {
 
     private HazelcastInstance hzInstance;
-    private IMap<ActorRef, Object> applicationsMap;
+    //todo: should use a MultiMap as soon as available again in Hazelcast 3.
+    private IMap<String, Set<ActorRef>> namespaceMap;
+
     private ExecutorService distributedExecutorService;
     private ExecutorService localExecutor;
     private ActorRuntime actorRuntime;
+    private IMap<String, Set<ActorRef>> namespaceSubscribersMap;
 
     public void init(HazelcastInstance hzInstance, ActorRuntime actorRuntime) {
-        applicationsMap = hzInstance.getMap("applications");
+        namespaceMap = hzInstance.getMap("namespace");
+        namespaceSubscribersMap = hzInstance.getMap("namespace-subscribers");
         distributedExecutorService = hzInstance.getExecutorService("executor");
         localExecutor = Executors.newFixedThreadPool(10);
         this.actorRuntime = actorRuntime;
     }
 
-    public void subscribe(ActorRef listener, ActorRef target, Attribute attribute) {
+    public void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute) {
         actorRuntime.send(listener, target, new Entity.SubscribeMessage(listener, attribute));
     }
 
     @Override
     public void executeLocally(Runnable task) {
+        notNull(task, "task");
         localExecutor.execute(task);
     }
 
     @Override
     public void executeAnywhere(Runnable task) {
+        notNull(task, "task");
         distributedExecutorService.execute(task);
-    }
-
-    @Override
-    public Set<ActorRef> getApplications() {
-        return applicationsMap.keySet();
     }
 
     @Override
@@ -63,7 +65,6 @@ public class LocalManagementContext implements ManagementContext {
         //todo: there should be a way to signal to the actorRuntime that we want a random location
         int partitionId = -1;
         return newActiveObject(activeObjectClass, partitionId, MutableMap.map());
-
     }
 
     @Override
@@ -84,17 +85,101 @@ public class LocalManagementContext implements ManagementContext {
         });
     }
 
+
     @Override
-    public void registerApplication(ActorRef app) {
-        notNull(app, "app");
-        applicationsMap.put(app, null);
+    public Set<ActorRef> getFromNameSpace(String nameSpace) {
+        notNull(nameSpace, "nameSpace");
+
+        namespaceMap.lock(nameSpace);
+        try {
+            Set<ActorRef> refs = namespaceMap.get(nameSpace);
+            Set<ActorRef> result = new HashSet<ActorRef>();
+            if (refs != null) {
+                result.addAll(refs);
+            }
+            return refs;
+        } finally {
+            namespaceMap.unlock(nameSpace);
+        }
     }
 
     @Override
-    public void unregisterApplication(ActorRef app) {
-        notNull(app, "app");
-        applicationsMap.remove(app);
+    public void unregisterFromNamespace(String nameSpace, ActorRef ref) {
+        notNull(nameSpace, "nameSpace");
+        notNull(ref, "ref");
+
+        namespaceMap.lock(nameSpace);
+        try {
+            Set<ActorRef> refs = namespaceMap.get(nameSpace);
+            if (refs == null) {
+                return;
+            }
+            if (!refs.remove(ref)) {
+                return;
+            }
+            namespaceMap.put(nameSpace, refs);
+        } finally {
+            namespaceMap.unlock(nameSpace);
+        }
     }
+
+    @Override
+    public void registerInNamespace(String nameSpace, ActorRef ref) {
+        notNull(nameSpace, "nameSpace");
+        notNull(ref, "ref");
+
+        namespaceMap.lock(nameSpace);
+        try {
+            Set<ActorRef> refs = namespaceMap.get(nameSpace);
+            if (refs == null) {
+                refs = new HashSet<ActorRef>();
+            }
+
+            //if we are already registered, we are finished.
+            if (!refs.add(ref)) {
+                return;
+            }
+            namespaceMap.put(nameSpace, refs);
+        } finally {
+            namespaceMap.unlock(nameSpace);
+        }
+
+        namespaceSubscribersMap.lock(nameSpace);
+        try {
+            Set<ActorRef> subscribers = namespaceMap.get(nameSpace);
+            if (subscribers == null) {
+                return;
+            }
+
+            for (ActorRef subscriber : subscribers) {
+                actorRuntime.send(subscriber, new NamespaceChange(ref, true,nameSpace));
+            }
+        } finally {
+            namespaceSubscribersMap.unlock(nameSpace);
+
+        }
+    }
+
+    @Override
+    public void subscribeToNamespace(String nameSpace, ActorRef subscriber) {
+        notNull(nameSpace, "nameSpace");
+        notNull(subscriber, "subscriber");
+
+        namespaceSubscribersMap.lock(nameSpace);
+        try {
+            Set<ActorRef> subscribers = namespaceSubscribersMap.get(nameSpace);
+            if (subscribers == null) {
+                return;
+            }
+            if (!subscribers.add(subscriber)) {
+                return;
+            }
+            namespaceSubscribersMap.put(nameSpace, subscribers);
+        } finally {
+            namespaceSubscribersMap.unlock(nameSpace);
+        }
+    }
+
 
     //For the time being it is a simple mechanism; the driver class returned by the entity, is the actual class
     //of the driver instance to be used. In the future we can use the same mechanism as in Brooklyn.

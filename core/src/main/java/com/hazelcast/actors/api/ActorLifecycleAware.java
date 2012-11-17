@@ -2,7 +2,7 @@ package com.hazelcast.actors.api;
 
 public interface ActorLifecycleAware {
 
-    void init(ActorRecipe recipe)throws Exception;
+    void init()throws Exception;
 
     void suspend()throws Exception;
 

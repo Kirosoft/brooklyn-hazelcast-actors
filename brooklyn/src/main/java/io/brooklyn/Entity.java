@@ -22,9 +22,9 @@ public abstract class Entity extends ReflectiveActor {
     private AttributeMap attributeMap = new AttributeMap(this);
 
     @Override
-    public void init(ActorRecipe actorRecipe) throws Exception{
-        super.init(actorRecipe);
-        attributeMap.init(getHzInstance(), actorRecipe);
+    public void init() throws Exception{
+        super.init();
+        attributeMap.init(getHzInstance(), getRecipe());
     }
 
     public final ManagementContext getManagementContext() {

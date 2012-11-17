@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#stop the script as soon as we run into an uninitialized variable
+set -u
+
+#exit the script as soon as we run into a non 0 exit code.
+set -e
+
 ${EnvironmentVariables}
 
 function deploy(){
@@ -31,7 +37,7 @@ function install() {
       echo "Downloading Tomcat"
       /opt/local/bin/wget http://mirror.host4site.co.il/apache/tomcat/tomcat-7/v${VERSION}/bin/apache-tomcat-${VERSION}.tar.gz  \
                           --directory-prefix=/tmp
-      echo "Finished Downloading tomcat with exitcode:" $?
+      echo "Finished Downloading tomcat"
   fi
 
   echo "Unpacking Tomcat"
@@ -41,7 +47,7 @@ function install() {
 }
 
 function launch() {
-   #service:jmx:rmi:///jndi/rmi://localhost:10000/jmxrmi
+   #impl:jmx:rmi:///jndi/rmi://localhost:10000/jmxrmi
    export JAVA_OPTS="-Dcom.sun.management.jmxremote.authenticate=false \
               -Dcom.sun.management.jmxremote.ssl=false \
               -Dcom.sun.management.jmxremote.port=$JMX_PORT"

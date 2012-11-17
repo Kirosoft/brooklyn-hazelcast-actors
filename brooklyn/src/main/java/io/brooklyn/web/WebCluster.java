@@ -1,31 +1,29 @@
 package io.brooklyn.web;
 
-import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
 import com.hazelcast.actors.utils.MutableMap;
 import io.brooklyn.Entity;
 import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
-import io.brooklyn.example.Echoer;
 import io.brooklyn.policy.LoadBalancingPolicy;
 
 import java.io.Serializable;
-import java.sql.Ref;
 
 public class WebCluster extends Entity {
 
     private ListAttributeRef<ActorRef> children = newListAttribute(new Attribute<ActorRef>("children"));
-    ActorRef loadBalancingPolicy;
+    private BasicAttributeRef<ActorRef> loadBalancingPolicy = newBasicAttributeRef(new Attribute<ActorRef>("loadBalancingPolicy"));
 
     @Override
-    public void init(ActorRecipe actorRecipe) throws Exception {
-        super.init(actorRecipe);
+    public void init() throws Exception {
+        super.init();
 
-        loadBalancingPolicy = getActorRuntime().newActor(
+        loadBalancingPolicy.set(getActorRuntime().newActor(
                 LoadBalancingPolicy.class,
-                MutableMap.map(LoadBalancingPolicy.CLUSTER.getName(), self()));
+                MutableMap.map(LoadBalancingPolicy.CLUSTER.getName(), self())));
     }
 
     public void receive(ChildFailureMessage message) {
@@ -58,8 +56,8 @@ public class WebCluster extends Entity {
                 ActorRef tomcat = getActorRuntime().newActor(Tomcat.class);
                 children.add(tomcat);
 
-                //subscribe the loadbalancingPolicy to the status field of tomcat.
-                getManagementContext().subscribe(loadBalancingPolicy, tomcat, Tomcat.STATE);
+                //subscribeToAttribute the loadbalancingPolicy to the status field of tomcat.
+                getManagementContext().subscribeToAttribute(loadBalancingPolicy.get(), tomcat, Tomcat.STATE);
 
                 //lets start tomcat.
                 getActorRuntime().send(self(), tomcat, new Tomcat.StartTomcatMessage("localhost", self()));
@@ -88,6 +86,10 @@ public class WebCluster extends Entity {
         public ChildFailureMessage(ActorRef tomcat) {
             this.tomcat = tomcat;
         }
+    }
+
+    public static class ReplaceMessage implements Serializable{
+
     }
 
     //scales the webcluster to a certain size.

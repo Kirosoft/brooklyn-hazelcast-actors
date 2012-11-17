@@ -25,10 +25,10 @@ public final class AttributeMap {
         this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributes");
 
 
-        for (Map.Entry<String, Object> entry : actorRecipe.getProperties().entrySet()) {
+        //for (Map.Entry<String, Object> entry : actorRecipe.getProperties().entrySet()) {
             //todo: for the time being this is disabled since the put blocks.
             //attributeMap.put(entry.getKey(), entry.getValue());
-        }
+        //}
     }
 
     public <E> void setAttribute(Attribute<E> attribute, E newValue) {

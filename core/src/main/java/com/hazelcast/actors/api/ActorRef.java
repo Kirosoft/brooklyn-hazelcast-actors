@@ -4,7 +4,6 @@ import com.hazelcast.actors.utils.Util;
 
 import java.io.Serializable;
 
-
 public final class ActorRef implements Serializable {
     private final String id;
     private final int partitionId;

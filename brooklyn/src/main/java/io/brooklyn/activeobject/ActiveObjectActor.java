@@ -12,10 +12,11 @@ public class ActiveObjectActor extends AbstractActor {
     private AbstractActiveObject activeObject;
 
     @Override
-    public void init(ActorRecipe recipe) throws Exception {
-        super.init(recipe);
+    public void init() throws Exception {
+        super.init();
 
         try {
+            ActorRecipe recipe = getRecipe();
             String clazz = (String) recipe.getProperties().get("activeObjectClass");
             activeObject = (AbstractActiveObject) Class.forName(clazz).newInstance();
             activeObject.setActorRef(self());

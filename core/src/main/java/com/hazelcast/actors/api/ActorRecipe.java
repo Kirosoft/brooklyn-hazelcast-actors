@@ -8,23 +8,32 @@ import java.util.Map;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
-public class ActorRecipe implements Serializable {
-    private final Class<? extends Actor> actorClass;
+/**
+ * The ActorRecipe is a recipe to instantiate a new actor. The same recipe can be used to create multiple actors.
+ *
+ * @param <A>
+ */
+public class ActorRecipe<A extends Actor> implements Serializable {
+    private final String actorClass;
     private final int partitionId;
     private final Map<String, Object> properties;
 
-    public ActorRecipe(Class<? extends Actor> actorClass, int partitionId) {
+    public ActorRecipe(Class<A> actorClass, int partitionId) {
         this(actorClass, partitionId, null);
     }
 
-    public ActorRecipe(Class<? extends Actor> actorClass, int partitionId, Map<String, Object> properties) {
-        this.actorClass = Util.notNull(actorClass, "actorClass");
+    public ActorRecipe(Class<A> actorClass, int partitionId, Map<String, Object> properties) {
+        this.actorClass = Util.notNull(actorClass, "actorClass").getName();
         this.partitionId = partitionId;
         this.properties = properties;
     }
 
-    public Class<? extends Actor> getActorClass() {
-        return actorClass;
+    public Class<A> getActorClass() {
+        try {
+            return (Class<A>)ActorRecipe.class.getClassLoader().loadClass(actorClass);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public int getPartitionId() {

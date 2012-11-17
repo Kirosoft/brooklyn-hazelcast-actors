@@ -5,6 +5,7 @@ import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.attributes.Attribute;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,13 +32,15 @@ public interface ManagementContext {
      */
     <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config);
 
-    void subscribe(ActorRef listener, ActorRef target, Attribute attribute);
+    void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute);
 
-    Set<ActorRef> getApplications();
+    void registerInNamespace(String nameSpace, ActorRef ref);
 
-    void registerApplication(ActorRef app);
+    void unregisterFromNamespace(String nameSpace, ActorRef ref);
 
-    void unregisterApplication(ActorRef app);
+    void subscribeToNamespace(String nameSpace, ActorRef ref);
+
+    Set<ActorRef> getFromNameSpace(String nameSpace);
 
     SoftwareProcessDriver newDriver(SoftwareProcess entity);
 }

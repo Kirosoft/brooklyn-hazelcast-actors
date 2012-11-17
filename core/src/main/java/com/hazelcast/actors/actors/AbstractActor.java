@@ -1,80 +1,74 @@
 package com.hazelcast.actors.actors;
 
 import com.hazelcast.actors.api.Actor;
+import com.hazelcast.actors.api.ActorContext;
+import com.hazelcast.actors.api.ActorContextAware;
 import com.hazelcast.actors.api.ActorLifecycleAware;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.ActorRefAware;
 import com.hazelcast.actors.api.ActorRuntime;
-import com.hazelcast.actors.api.ActorSystemAware;
-import com.hazelcast.actors.api.UnprocessedException;
-import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.HazelcastInstanceAware;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import static com.hazelcast.actors.utils.Util.notNull;
 
 public abstract class AbstractActor implements Actor,
-        HazelcastInstanceAware, ActorSystemAware, ActorLifecycleAware, ActorRefAware {
+        ActorLifecycleAware, ActorContextAware {
 
-    private HazelcastInstance hzInstance;
-    private ActorRuntime actorRuntime;
-    private ActorRef self;
-    private ActorRecipe recipe;
-
-    public ActorRef self() {
-        return self;
-    }
-
-    public ActorRecipe getRecipe() {
-        return recipe;
-    }
+    private ActorContext actorContext;
 
     @Override
-    public void setActorRef(ActorRef actorRef) {
-        this.self = actorRef;
-    }
-
-    @Override
-    public final void setHazelcastInstance(HazelcastInstance hzInstance) {
-        this.hzInstance = hzInstance;
-    }
-
-    @Override
-    public final void setActorRuntime(ActorRuntime actorRuntime) {
-        this.actorRuntime = actorRuntime;
+    public final void setActorContext(ActorContext actorContext) {
+        this.actorContext = notNull(actorContext, "actorContext");
     }
 
     public final void send(Object msg) {
-        this.actorRuntime.send(self(), msg);
+        assertActorContextNotNull();
+        actorContext.getActorRuntime().send(self(), msg);
     }
 
     @Override
-    public void init(ActorRecipe recipe)throws Exception{
-        this.recipe = recipe;
-    }
-
-    @Override
-    public void terminate()throws Exception {
+    public void init() throws Exception {
         //no-op
     }
 
     @Override
-    public void reactivate() throws Exception{
+    public void terminate() throws Exception {
         //no-op
     }
 
     @Override
-    public void suspend()throws Exception {
+    public void reactivate() throws Exception {
         //no-op
+    }
+
+    @Override
+    public void suspend() throws Exception {
+        //no-op
+    }
+
+    public final ActorRef self() {
+        assertActorContextNotNull();
+        return actorContext.self();
+    }
+
+    public final ActorRecipe getRecipe() {
+        assertActorContextNotNull();
+        return actorContext.getRecipe();
     }
 
     public final ActorRuntime getActorRuntime() {
-        return actorRuntime;
+        assertActorContextNotNull();
+        return actorContext.getActorRuntime();
     }
 
     public final HazelcastInstance getHzInstance() {
-        return hzInstance;
+        assertActorContextNotNull();
+        return actorContext.getHazelcastInstance();
+    }
+
+    private void assertActorContextNotNull() {
+        if (actorContext == null) {
+            throw new IllegalStateException("actorContext has not yet been set");
+        }
     }
 }
