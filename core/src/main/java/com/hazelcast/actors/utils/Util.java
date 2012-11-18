@@ -1,5 +1,8 @@
 package com.hazelcast.actors.utils;
 
+import com.hazelcast.actors.api.Actor;
+import com.hazelcast.actors.api.ActorRef;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -7,11 +10,25 @@ import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class Util {
     public final static String EXCEPTION_SEPARATOR = "------End remote and begin local stracktrace ------";
+
+    public static Exception handle(InvocationTargetException e) throws Exception {
+        Throwable cause = e.getCause();
+        if (cause instanceof Exception) {
+            throw (Exception) cause;
+        } else if (cause instanceof Error) {
+            throw (Error) cause;
+        } else {
+            throw new RuntimeException(cause);
+        }
+    }
 
     public static void fixStackTrace(Throwable cause, StackTraceElement[] clientSideStackTrace) {
         StackTraceElement[] serverSideStackTrace = cause.getStackTrace();
@@ -22,46 +39,15 @@ public class Util {
         cause.setStackTrace(newStackTrace);
     }
 
-    public static void sleep(long miliseconds) {
+    public static void sleep(long ms) {
         try {
-            Thread.sleep(miliseconds);
+            Thread.sleep(ms);
         } catch (InterruptedException e) {
             e.printStackTrace();  //To change body map catch statement use File | Settings | File Templates.
         }
     }
 
-    public static Method findReceiveMethod(Class actorClass, Class messageClass) {
-        while (true) {
-            Method receiveMethod = getReceiveMethod(actorClass, messageClass);
-            if (receiveMethod == null) {
-                receiveMethod = getReceiveMethod(actorClass, messageClass);
-            }
 
-            if (receiveMethod != null) {
-                receiveMethod.setAccessible(true);
-                return receiveMethod;
-            } else {
-                actorClass = actorClass.getSuperclass();
-                if (actorClass == null) return null;
-            }
-        }
-    }
-
-    private static Method getReceiveMethod(Class actorClass, Class... args) {
-        try {
-            Method receiveMethod = actorClass.getDeclaredMethod("receive", args);
-            if (!receiveMethod.getReturnType().equals(Void.TYPE)) {
-                throw new RuntimeException("Receive method '" + receiveMethod + "' should return void.");
-            }
-            if (Modifier.isStatic(receiveMethod.getReturnType().getModifiers())) {
-                throw new RuntimeException("Receive method '" + receiveMethod + "' should return void.");
-            }
-
-            return receiveMethod;
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
 
     public static <E> E notNull(E e, String name) {
         if (e == null) {
@@ -72,7 +58,7 @@ public class Util {
 
     public static byte[] toBytes(Object o) {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ObjectOutput out = null;
+        ObjectOutput out;
         try {
             out = new ObjectOutputStream(bos);
             out.writeObject(o);
@@ -84,13 +70,11 @@ public class Util {
 
     public static Object toObject(byte[] bytes) {
         ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
-        ObjectInput in = null;
+        ObjectInput in;
         try {
             in = new ObjectInputStream(bis);
             return in.readObject();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }

@@ -174,7 +174,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     private class ActorPartition {
         private final String name;
         private final PartitionInfo partition;
-        private final ConcurrentMap<String, Future<ActorContainer>> actors = new ConcurrentHashMap<String, Future<ActorContainer>>();
+        private final ConcurrentMap<String, ActorContainer> actorContainerMap = new ConcurrentHashMap<>();
         private final ActorRuntime actorRuntime;
 
         private ActorPartition(String name, PartitionInfo partition) {
@@ -184,17 +184,12 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public void post(ActorRef sender, String id, final Object message) throws InterruptedException {
-            final Future<ActorContainer> future = actors.get(id);
-            if (future == null) {
+            final ActorContainer actorContainer = actorContainerMap.get(id);
+            if (actorContainer == null) {
                 throw new IllegalArgumentException("Actor " + id + " is not found");
             }
 
-            try {
-                final ActorContainer actorContainer = future.get();
-                actorContainer.post(sender, message);
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            actorContainer.post(sender, message);
         }
 
         public ActorRef createActor(final ActorRecipe recipe) throws Exception {
@@ -216,8 +211,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                     }
             );
 
+
             try {
-                future.get();
+                ActorContainer container = future.get();
+                actorContainerMap.put(ref.getId(), container);
+                return ref;
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } catch (ExecutionException e) {
@@ -228,36 +226,30 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                     throw new RuntimeException(e);
                 }
             }
-            actors.put(ref.getId(), future);
-            return ref;
         }
 
         public void terminate(final ActorRef target) throws InterruptedException {
-            final Future<ActorContainer> future = actors.get(target.getId());
-            if (future == null) {
+            ActorContainer actorContainer = actorContainerMap.get(target.getId());
+            if (actorContainer == null) {
                 return;
             }
 
-            try {
-                final ActorContainer actorContainer = future.get();
-                actorContainer.post(null, new Actors.Terminate());
-                throw new RuntimeException();
-                /*
-                forkJoinPool.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            actorContainer.processMessage(forkJoinPool);
-                            actors.remove(target.getId());
-                            actorContainer.terminate();
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+            actorContainer.post(null, new Actors.Terminate());
+            throw new RuntimeException();
+            /*
+            forkJoinPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        actorContainer.processMessage(forkJoinPool);
+                        actors.remove(target.getId());
+                        actorContainer.terminate();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                });*/
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+                }
+            });*/
+
         }
 
         public ActorPartitionContent content() {
@@ -278,25 +270,13 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public Actor getActor(ActorRef actorRef) {
-            ActorPartitionContainer container = partitionContainers[actorRef.getPartitionId()];
-
-            //todo: nastyyy
-            for (int k = 0; k < 60; k++) {
-                Future<ActorContainer> future = container.getPartition(name).actors.get(actorRef.getId());
-                if (future == null) {
-                    Util.sleep(1000);
-                    break;
-                }
-                try {
-                    return future.get().getActor();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } catch (ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
+            ActorPartitionContainer actorPartitionContainer = partitionContainers[actorRef.getPartitionId()];
+            if (actorPartitionContainer == null) {
+                throw new NullPointerException("No actor with actorRef:" + actorRef.getId() + " found");
             }
 
-            throw new RuntimeException("Actor with getActorRef: " + actorRef + " was not found");
+            ActorContainer actorContainer = actorPartitionContainer.getPartition(name).actorContainerMap.get(actorRef.getId());
+            return actorContainer.getActor();
         }
 
         @Override

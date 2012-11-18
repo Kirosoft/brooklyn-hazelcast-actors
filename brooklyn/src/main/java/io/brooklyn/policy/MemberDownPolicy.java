@@ -1,6 +1,6 @@
 package io.brooklyn.policy;
 
-import com.hazelcast.actors.actors.ReflectiveActor;
+import com.hazelcast.actors.actors.DispatchingActor;
 import io.brooklyn.attributes.SensorEvent;
 
 /**
@@ -11,7 +11,7 @@ import io.brooklyn.attributes.SensorEvent;
  * In the WebCluster example, the webcluster already is listening to the status of the member, so what is the point
  * of having a policy? We could introduce an additional actor for clarity/reusability.
  */
-public class MemberDownPolicy extends ReflectiveActor {
+public class MemberDownPolicy extends DispatchingActor {
 
     public void receive(SensorEvent e) {
         System.out.println("Sensor: " + e);

@@ -1,6 +1,6 @@
 package io.brooklyn;
 
-import com.hazelcast.actors.actors.ReflectiveActor;
+import com.hazelcast.actors.actors.DispatchingActor;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.Injected;
 import io.brooklyn.attributes.Attribute;
@@ -12,7 +12,7 @@ import java.io.Serializable;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
-public abstract class Entity extends ReflectiveActor {
+public abstract class Entity extends DispatchingActor {
 
     @Injected
     private ManagementContext managementContext;

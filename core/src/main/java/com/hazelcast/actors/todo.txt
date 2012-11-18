@@ -12,8 +12,6 @@ TODO
 
 - optimization for local calls.
 
-- receive method can be cached.
-
 - when a message is send, currently you won't get any guarantee if it is delivered.
 
 - the mailbox of the actor is not durable, it is an ordinary blocking queue.
@@ -24,17 +22,25 @@ TODO
 
 - when sending of a message fails because mailbox too full, the actor should be notified.
 
-- caching of receive method.
-
 - weak guarantees currently for a started entity.. when you get back a ref, you,have no
 idea if for example the entity is registered in the namespace.
 
-- mechanism to choose between the different actor containers.
-
 - mechanism to build mailboxes
+
+- reflective actor doesn't deal with with ambiguity: 1 arg vs 2 arg receive methods
+
+- reflective actor doesn't deal with subclassing ambiguity:
 
 DONE
 
+- reflective actor should be able to receive supclasses. Currently when no specific type is provided,
+the UnprocessedException is thrown.
+
+- reflective actor should be able to deal with Object. Currently it will result in a Stackoverflow exception
+
+- mechanism to choose between the different actor containers.
+
+- receive method can be cached.
 
 - the ActorRef is now PartitionAware. So when used in a Hazelcastmap, the correct partition will be used.
 
