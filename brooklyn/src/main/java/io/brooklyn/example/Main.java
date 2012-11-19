@@ -11,10 +11,9 @@ import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
+import io.brooklyn.entity.web.TomcatConfig;
 
 import java.util.Map;
-
-import static com.hazelcast.actors.utils.MutableMap.map;
 
 public class Main {
 
@@ -25,7 +24,7 @@ public class Main {
 
         LocalManagementContext managementContext = new LocalManagementContext();
 
-        Map<String,Object> dependencies = MutableMap.map("managementContext",managementContext);
+        Map<String, Object> dependencies = MutableMap.map("managementContext", managementContext);
         ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
         actorServiceConfig.setActorFactory(new BasicActorFactory(dependencies));
         services.addServiceConfig(actorServiceConfig);
@@ -40,6 +39,9 @@ public class Main {
 
         ActorRef application = actorRuntime.newActor(ExampleWebApplication.class);
         actorRuntime.send(application, new ExampleWebApplication.StartMessage());
+
+        TomcatConfig tomcatConfig = new TomcatConfig().httpPort(8085).jmxPort(20001).shutdownPort(9001);
+        ActorRef tomcat = managementContext.newEntity(tomcatConfig);
 
         //actorApplication.startServer();
 

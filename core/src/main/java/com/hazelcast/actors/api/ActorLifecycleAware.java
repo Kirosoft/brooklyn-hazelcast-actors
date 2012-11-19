@@ -11,25 +11,26 @@ public interface ActorLifecycleAware {
      *
      * @throws Exception
      */
-    void activate()throws Exception;
+    void activate() throws Exception;
 
     /**
      * Called when the Actor is suspended.
+     *
      * @throws Exception
      */
-    void suspend()throws Exception;
+    void suspend() throws Exception;
 
     /**
      * Called when the Actor is reactivated.
      *
      * @throws Exception
      */
-    void reactivate()throws Exception;
+    void reactivate() throws Exception;
 
     /**
      * Called when the Actor is terminated.
      *
      * @throws Exception
      */
-    void terminate()throws Exception;
+    void terminate() throws Exception;
 }

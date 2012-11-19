@@ -29,9 +29,13 @@ idea if for example the entity is registered in the namespace.
 
 - reflective actor doesn't deal with with ambiguity: 1 arg vs 2 arg receive methods
 
-- reflective actor doesn't deal with subclassing ambiguity:
+- actor termination.
+
+- dealing with the interrupted exception
 
 DONE
+
+- reflective actor doesn't deal with subclassing ambiguity
 
 - reflective actor should be able to receive supclasses. Currently when no specific type is provided,
 the UnprocessedException is thrown.

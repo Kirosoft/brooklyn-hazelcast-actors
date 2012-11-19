@@ -6,9 +6,9 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.core.HazelcastInstance;
 
-public class DummyActorContext implements ActorContext{
+public class DummyActorContext implements ActorContext {
     private final HazelcastInstance hzInstance;
-    private final ActorRef self = new ActorRef("foo",1);
+    private final ActorRef self = new ActorRef("foo", 1);
     private final ActorRecipe recipe;
     private ActorRuntime actorRuntime;
 
@@ -30,7 +30,7 @@ public class DummyActorContext implements ActorContext{
 
     @Override
     public ActorRuntime getActorRuntime() {
-        return  actorRuntime;
+        return actorRuntime;
     }
 
     @Override

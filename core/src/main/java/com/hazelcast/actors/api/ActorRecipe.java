@@ -6,8 +6,6 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Map;
 
-import static com.hazelcast.actors.utils.Util.notNull;
-
 /**
  * The ActorRecipe is a recipe to instantiate a new actor. The same recipe can be used to create multiple actors.
  *
@@ -30,7 +28,7 @@ public class ActorRecipe<A extends Actor> implements Serializable {
 
     public Class<A> getActorClass() {
         try {
-            return (Class<A>)ActorRecipe.class.getClassLoader().loadClass(actorClass);
+            return (Class<A>) ActorRecipe.class.getClassLoader().loadClass(actorClass);
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }

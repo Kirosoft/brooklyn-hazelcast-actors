@@ -1,10 +1,10 @@
 package io.brooklyn.policy;
 
 import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.Entity;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.SensorEvent;
+import io.brooklyn.entity.Entity;
 
 public class LoadBalancingPolicy extends Entity {
 

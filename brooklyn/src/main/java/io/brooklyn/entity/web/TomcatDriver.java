@@ -1,7 +1,7 @@
-package io.brooklyn.web;
+package io.brooklyn.entity.web;
 
 import com.google.common.io.Files;
-import io.brooklyn.SoftwareProcessDriver;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 import io.brooklyn.util.BashScriptRunner;
 
 import java.io.File;

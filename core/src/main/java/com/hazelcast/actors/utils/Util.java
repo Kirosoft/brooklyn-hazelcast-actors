@@ -1,8 +1,5 @@
 package com.hazelcast.actors.utils;
 
-import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorRef;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,10 +8,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class Util {
     public final static String EXCEPTION_SEPARATOR = "------End remote and begin local stracktrace ------";
@@ -46,7 +39,6 @@ public class Util {
             e.printStackTrace();  //To change body map catch statement use File | Settings | File Templates.
         }
     }
-
 
 
     public static <E> E notNull(E e, String name) {

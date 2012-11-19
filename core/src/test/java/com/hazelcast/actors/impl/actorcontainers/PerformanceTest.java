@@ -52,10 +52,10 @@ public class PerformanceTest {
     }
 
     @AfterClass
-      public static void tearDown() {
+    public static void tearDown() {
         actorRuntime.destroy();
         Hazelcast.shutdownAll();
-      }
+    }
 
     @Test
     @Ignore

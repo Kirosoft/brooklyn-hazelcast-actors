@@ -4,11 +4,11 @@ import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
-import io.brooklyn.Entity;
+import io.brooklyn.entity.Entity;
+import io.brooklyn.entity.EntityConfig;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
@@ -21,13 +21,13 @@ public final class AttributeMap {
         this.entity = entity;
     }
 
-    public void init(HazelcastInstance hazelcastInstance, ActorRecipe actorRecipe) {
+    public void init(HazelcastInstance hazelcastInstance, ActorRecipe actorRecipe, EntityConfig config) {
         this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributes");
 
 
         //for (Map.Entry<String, Object> entry : actorRecipe.getProperties().entrySet()) {
-            //todo: for the time being this is disabled since the put blocks.
-            //attributeMap.put(entry.getKey(), entry.getValue());
+        //todo: for the time being this is disabled since the put blocks.
+        //attributeMap.put(entry.getKey(), entry.getValue());
         //}
     }
 
@@ -65,6 +65,14 @@ public final class AttributeMap {
         //this hack is temporarily needed to deal with a dealock in Hazelcast map.
         if (value == null) {
             value = (E) entity.getRecipe().getProperties().get(attribute.getName());
+
+            if (value == null) {
+                EntityConfig entityConfig = (EntityConfig) entity.getRecipe().getProperties().get("entityConfig");
+                if (entityConfig != null) {
+                    value = (E) entityConfig.getProperty(attribute.getName());
+                }
+            }
+
             if (value == null) {
                 value = attribute.getDefaultValue();
             }

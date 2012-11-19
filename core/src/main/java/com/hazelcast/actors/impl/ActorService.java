@@ -5,7 +5,6 @@ import com.hazelcast.actors.api.ActorFactory;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
-import com.hazelcast.actors.api.Actors;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainer;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainerFactory;
 import com.hazelcast.actors.utils.MutableMap;
@@ -56,7 +55,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     private ILogger logger;
     private ActorPartitionContainer[] partitionContainers;
     private final ConcurrentMap<String, ActorRuntimeProxyImpl> actorSystems = new ConcurrentHashMap<>();
-    private final ExecutorService executor = Executors.newScheduledThreadPool(10);
+    private final ExecutorService offloadExecutor = Executors.newScheduledThreadPool(10);
     private ActorServiceConfig actorConfig;
     private IMap<ActorRef, Set<ActorRef>> monitorMap;
     private ActorFactory actorFactory;
@@ -73,8 +72,8 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         this.actorConfig = findActorServiceConfig();
         this.actorFactory = actorConfig.getActorFactory();
         this.actorContainerFactory = actorConfig.getActorContainerFactory();
-        this.actorContainerFactory.init(monitorMap);
         this.monitorMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("monitorMap");
+        this.actorContainerFactory.init(monitorMap);
         int partitionCount = nodeService.getPartitionCount();
 
         this.partitionContainers = new ActorPartitionContainer[partitionCount];
@@ -195,7 +194,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         public ActorRef createActor(final ActorRecipe recipe) throws Exception {
             final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), recipe.getPartitionId());
 
-            Future<ActorContainer> future = executor.submit(
+            Future<ActorContainer> future = offloadExecutor.submit(
                     new Callable<ActorContainer>() {
                         @Override
                         public ActorContainer call() {
@@ -229,27 +228,16 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public void terminate(final ActorRef target) throws InterruptedException {
-            ActorContainer actorContainer = actorContainerMap.get(target.getId());
+            final ActorContainer actorContainer = actorContainerMap.get(target.getId());
             if (actorContainer == null) {
                 return;
             }
 
-            actorContainer.post(null, new Actors.Terminate());
-            throw new RuntimeException();
-            /*
-            forkJoinPool.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        actorContainer.processMessage(forkJoinPool);
-                        actors.remove(target.getId());
-                        actorContainer.terminate();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });*/
-
+            try {
+                actorContainer.terminate();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         public ActorPartitionContent content() {

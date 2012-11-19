@@ -27,6 +27,6 @@ public class ActorWithBrokenActivate implements ActorLifecycleAware, Actor {
 
     @Override
     public void terminate() throws Exception {
-       //no-op
+        //no-op
     }
 }

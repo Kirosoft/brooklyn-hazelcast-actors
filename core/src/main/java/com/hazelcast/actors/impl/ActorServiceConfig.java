@@ -2,7 +2,6 @@ package com.hazelcast.actors.impl;
 
 import com.hazelcast.actors.api.ActorFactory;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainerFactory;
-import com.hazelcast.actors.impl.actorcontainers.ForkJoinPoolActorContainer;
 import com.hazelcast.actors.impl.actorcontainers.ThreadPoolExecutorActorContainer;
 import com.hazelcast.config.CustomServiceConfig;
 
@@ -24,7 +23,7 @@ public class ActorServiceConfig extends CustomServiceConfig {
     }
 
     public void setActorContainerFactory(ActorContainerFactory actorContainerFactory) {
-        this.actorContainerFactory = notNull(actorContainerFactory,"actorContainerFactory");
+        this.actorContainerFactory = notNull(actorContainerFactory, "actorContainerFactory");
     }
 
     public ActorFactory getActorFactory() {
@@ -32,6 +31,6 @@ public class ActorServiceConfig extends CustomServiceConfig {
     }
 
     public void setActorFactory(ActorFactory actorFactory) {
-        this.actorFactory = notNull(actorFactory,"actorFactory");
+        this.actorFactory = notNull(actorFactory, "actorFactory");
     }
 }

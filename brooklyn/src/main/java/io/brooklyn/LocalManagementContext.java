@@ -1,5 +1,6 @@
 package io.brooklyn;
 
+import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.utils.MutableMap;
@@ -9,6 +10,10 @@ import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.activeobject.ActiveObjectActor;
 import io.brooklyn.activeobject.ActiveObjectMessage;
 import io.brooklyn.attributes.Attribute;
+import io.brooklyn.entity.Entity;
+import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
@@ -44,8 +49,18 @@ public class LocalManagementContext implements ManagementContext {
         this.actorRuntime = actorRuntime;
     }
 
+    @Override
+    public ActorRef newEntity(EntityConfig entityConfig) {
+        notNull(entityConfig, "entityConfig");
+
+        int partitionId = 0;//todo: we need to fix the partition id.
+        ActorRecipe actorRecipe = new ActorRecipe(
+                entityConfig.getEntityClass(), partitionId, MutableMap.map("entityConfig", entityConfig));
+        return actorRuntime.newActor(actorRecipe);
+    }
+
     public void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute) {
-        actorRuntime.send(listener, target, new Entity.SubscribeMessage(listener, attribute));
+        actorRuntime.send(listener, target, new Entity.Subscription(listener, attribute));
     }
 
     @Override
@@ -152,7 +167,7 @@ public class LocalManagementContext implements ManagementContext {
             }
 
             for (ActorRef subscriber : subscribers) {
-                actorRuntime.send(subscriber, new NamespaceChange(ref, true,nameSpace));
+                actorRuntime.send(subscriber, new NamespaceChange(ref, true, nameSpace));
             }
         } finally {
             namespaceSubscribersMap.unlock(nameSpace);

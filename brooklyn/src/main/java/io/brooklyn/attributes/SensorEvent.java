@@ -4,6 +4,7 @@ import com.hazelcast.actors.api.ActorRef;
 
 import java.io.Serializable;
 
+
 public class SensorEvent implements Serializable {
     private final ActorRef source;
     private final Object oldValue;

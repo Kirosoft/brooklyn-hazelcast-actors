@@ -2,7 +2,7 @@ package com.hazelcast.actors.api;
 
 /**
  * A Factory for creating {@link Actor} instances based on an {@link ActorRecipe}.
- *
+ * <p/>
  * By using a Factory you have the flexibility to control Actor instance creation completely,
  * e.g. you could create a Guice/Spring based on that does a lookup.
  *

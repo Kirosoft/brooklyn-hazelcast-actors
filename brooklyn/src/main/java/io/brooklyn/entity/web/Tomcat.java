@@ -1,11 +1,10 @@
-package io.brooklyn.web;
+package io.brooklyn.entity.web;
 
 import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.SoftwareProcess;
-import io.brooklyn.SoftwareProcessDriver;
-import io.brooklyn.SoftwareProcessStatus;
-import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessStatus;
 import io.brooklyn.util.JmxConnection;
 
 import javax.management.openmbean.CompositeData;
@@ -14,12 +13,12 @@ import java.io.Serializable;
 /**
  * The current start map tomcat is a blocking operation, meaning: as long as the installation (install/customize/launch)
  * is executing, the actor will not be processing any other messages.
- *
+ * <p/>
  * This is undesirable, and also a violation what you normally want to do with actors: keep processing messages
  * as short as possible. What should be done is that the driver calls should be offloaded to another thread and
  * a message should be send as soon as the task is complete. Tomcat then should respond to these messages (e.g.
  * InstallComplete) and start to execute the following step, e.g. 'customize'.
- *
+ * <p/>
  * The problem is that it could be that other operations like Deploy are being send before the Tomcat machine
  * is fully started. This can be solved in different ways;
  * - only send deploy message when tomcat is running
@@ -28,21 +27,16 @@ import java.io.Serializable;
  */
 public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
-    public static final Attribute<Integer> HTTP_PORT = new Attribute<Integer>("httpPort", 8080);
-    public static final Attribute<Integer> SHUTDOWN_PORT = new Attribute<Integer>("shutdownPort", 8005);
-    public static final Attribute<ActorRef> CLUSTER = new Attribute<ActorRef>("cluster");
-    public static final Attribute<Long> USED_HEAP = new Attribute<Long>("usedHeap");
-    public static final Attribute<Long> MAX_HEAP = new Attribute<Long>("maxHeap");
-    public static final Attribute<Integer> JMX_PORT = new Attribute<Integer>("jmxPort",10000);
-    public static final Attribute<String> VERSION = new Attribute<String>("version", "7.0.32");
-
-    public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(HTTP_PORT);
-    public final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(SHUTDOWN_PORT);
-    public final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(JMX_PORT);
-    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(CLUSTER);
-    public final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(USED_HEAP);
-    public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(MAX_HEAP);
-    public final BasicAttributeRef<String> version = newBasicAttributeRef(VERSION);
+    //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
+    //a map (backedup by hazelcast). This map can be accessed directly either using strings or attributes.
+    //So these references are here to demonstrate an alternative way of accessing attributes.
+    public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(TomcatConfig.HTTP_PORT);
+    public final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(TomcatConfig.SHUTDOWN_PORT);
+    public final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(TomcatConfig.JMX_PORT);
+    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(TomcatConfig.CLUSTER);
+    public final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(TomcatConfig.USED_HEAP);
+    public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(TomcatConfig.MAX_HEAP);
+    public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
 
     public final JmxConnection jmxConnection = new JmxConnection();
 
@@ -52,7 +46,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     @Override
-    public void activate()throws Exception {
+    public void activate() throws Exception {
         super.activate();
 
         //the actor will register itself, so that every second it gets a message to update is jmx information
@@ -60,18 +54,18 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         getActorRuntime().repeat(self(), new JmxUpdate(), 1000);
     }
 
-    public void receive(UndeployMessage msg) {
+    public void receive(Undeployment msg) {
         System.out.println("Undeploy");
         getDriver().undeploy();
     }
 
-    public void receive(DeployMessage msg) {
+    public void receive(Deployment msg) {
         System.out.println("Deploying:" + msg.url);
         //todo: would be best to offload the work map the potentially long copy action
         getDriver().deploy(msg.url);
     }
 
-    public void receive(StartTomcatMessage msg) {
+    public void receive(StartTomcat msg) {
         System.out.println("StartTomcat");
 
         cluster.set(msg.cluster);
@@ -89,7 +83,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public void receive(StopTomcatMessage msg) {
+    public void receive(StopTomcat msg) {
         System.out.println("StopTomcat");
         try {
             state.set(SoftwareProcessStatus.STOPPING);
@@ -101,20 +95,20 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public void receive(TomcatFailureMessage msg) {
+    public void receive(TomcatFailure msg) {
         System.out.println("TomcatFailure at: " + self());
         ActorRef cluster = this.cluster.get();
         if (cluster != null) {
-            getActorRuntime().send(cluster, new WebCluster.ChildFailureMessage(self()));
+            getActorRuntime().send(cluster, new WebCluster.ChildFailure(self()));
         }
     }
 
     public void receive(JmxUpdate msg) {
-        if(state.get().equals(SoftwareProcessStatus.UNSTARTED)){
+        if (state.get().equals(SoftwareProcessStatus.UNSTARTED)) {
             return;
         }
 
-        if(!jmxConnection.isConnected()){
+        if (!jmxConnection.isConnected()) {
             state.set(SoftwareProcessStatus.UNREACHABLE);
             return;
         }
@@ -131,35 +125,35 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public static class TomcatFailureMessage implements Serializable {
+    public static class TomcatFailure implements Serializable {
     }
 
-    public static class StopTomcatMessage implements Serializable {
+    public static class StopTomcat implements Serializable {
     }
 
     public static class JmxUpdate implements Serializable {
     }
 
-    public static class StartTomcatMessage extends StartMessage {
+    public static class StartTomcat extends Start {
         public final ActorRef cluster;
 
-        public StartTomcatMessage(String location) {
+        public StartTomcat(String location) {
             this(location, null);
         }
 
-        public StartTomcatMessage(String location, ActorRef cluster) {
+        public StartTomcat(String location, ActorRef cluster) {
             super(location);
             this.cluster = cluster;
         }
     }
 
-    public static class UndeployMessage implements Serializable {
+    public static class Undeployment implements Serializable {
     }
 
-    public static class DeployMessage implements Serializable {
+    public static class Deployment implements Serializable {
         public final String url;
 
-        public DeployMessage(String url) {
+        public Deployment(String url) {
             this.url = url;
         }
     }

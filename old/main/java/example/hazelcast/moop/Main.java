@@ -8,7 +8,7 @@ import com.hazelcast.core.HazelcastInstance;
 
 public class Main {
 
-    public static void main(String[] args)throws Exception {
+    public static void main(String[] args) throws Exception {
         Config config = new Config();
         config.getNetworkConfig().getJoin().getMulticastConfig().setEnabled(true);
         Services services = config.getServicesConfig();
@@ -38,7 +38,7 @@ public class Main {
             System.out.println(moop.get("key" + k));
         }
 
-        System.out.println("size:"+moop.size());
-        System.out.println("localSize:"+moop.localSize());
+        System.out.println("size:" + moop.size());
+        System.out.println("localSize:" + moop.localSize());
     }
 }

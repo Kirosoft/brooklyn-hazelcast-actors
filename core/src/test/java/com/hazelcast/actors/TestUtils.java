@@ -12,8 +12,8 @@ import static org.junit.Assert.assertTrue;
 
 public class TestUtils {
 
-    public static void assertInstanceOf(Class expectedClass, Object o){
-        if(o == null){
+    public static void assertInstanceOf(Class expectedClass, Object o) {
+        if (o == null) {
             return;
         }
 

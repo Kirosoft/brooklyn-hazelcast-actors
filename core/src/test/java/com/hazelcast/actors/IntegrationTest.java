@@ -82,6 +82,13 @@ public class IntegrationTest {
         assertReceived(monitor, new MessageDeliveryFailure(target, ex));
     } */
 
+    @Test
+    public void actorTermination() {
+        ActorRef ref = actorRuntime.newActor(TestActor.class);
+        actorRuntime.terminate(ref);
+
+        actorRuntime.send(null, ref, "foo");
+    }
 
     private void assertReceived(ActorRef ref, Object msg) {
         TestActor actor = (TestActor) actorRuntime.getActor(ref);

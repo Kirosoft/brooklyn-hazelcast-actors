@@ -23,8 +23,8 @@ public class CountingActor implements Actor, ActorContextAware {
     public void receive(Object msg, ActorRef sender) throws Exception {
         long count = counter.incrementAndGet();
 
-        if(count % 10000000 == 0){
-            System.out.println(actorContext.self()+" is at: "+count);
+        if (count % 10000000 == 0) {
+            System.out.println(actorContext.self() + " is at: " + count);
         }
     }
 

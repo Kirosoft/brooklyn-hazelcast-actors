@@ -2,7 +2,6 @@ package com.hazelcast.actors.impl.actorcontainers;
 
 import com.hazelcast.actors.ActorWithBrokenActivate;
 import com.hazelcast.actors.ActorWithBrokenConstructor;
-import com.hazelcast.actors.SomeException;
 import com.hazelcast.actors.TestActor;
 import com.hazelcast.actors.TestUtils;
 import com.hazelcast.actors.api.ActorRef;
@@ -59,7 +58,7 @@ public class ActorRuntimeTest {
             actorRuntime.newActor(ActorWithBrokenConstructor.class);
             fail();
         } catch (ActorInstantiationException e) {
-            TestUtils.assertInstanceOf(ActorInstantiationException.class,e);
+            TestUtils.assertInstanceOf(ActorInstantiationException.class, e);
             TestUtils.assertExceptionContainsLocalSeparator(e);
         }
     }
@@ -70,7 +69,7 @@ public class ActorRuntimeTest {
             actorRuntime.newActor(ActorWithBrokenActivate.class);
             fail();
         } catch (ActorInstantiationException e) {
-            TestUtils.assertInstanceOf(ActorInstantiationException.class,e);
+            TestUtils.assertInstanceOf(ActorInstantiationException.class, e);
             TestUtils.assertExceptionContainsLocalSeparator(e);
         }
     }

@@ -13,22 +13,23 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.spi.impl.NodeServiceImpl;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static com.hazelcast.actors.TestUtils.newRandomActorRef;
 
-public class ActorExecutorActorContainerTest {
+public class ThreadPoolExecutorActorContainerTest {
+
     private static ActorService.ActorRuntimeProxyImpl actorRuntime;
     private static HazelcastInstance hzInstance;
     private static IMap<ActorRef, Set<ActorRef>> monitorMap;
     private static BasicActorFactory actorFactory;
     private static NodeServiceImpl nodeService;
-    private ActorExecutor executor;
+    private static ExecutorService executor;
 
     @BeforeClass
     public static void beforeClass() {
@@ -44,6 +45,7 @@ public class ActorExecutorActorContainerTest {
         monitorMap = hzInstance.getMap("monitorMap");
         actorFactory = new BasicActorFactory();
         nodeService = (NodeServiceImpl) actorRuntime.getNodeService();
+        executor = Executors.newSingleThreadExecutor();
     }
 
     @AfterClass
@@ -51,22 +53,13 @@ public class ActorExecutorActorContainerTest {
         Hazelcast.shutdownAll();
     }
 
-    @Before
-    public void before() {
-        executor = new ActorExecutor();
-    }
-
-    @Ignore
     @Test
-    public void test() throws InterruptedException {
+    public void terminate() throws Exception {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionId());
 
-        ActorExecutorActorContainer<TestActor> container = new ActorExecutorActorContainer<>(recipe, actorRef, monitorMap);
+        ThreadPoolExecutorActorContainer<TestActor> container = new ThreadPoolExecutorActorContainer<>(recipe, actorRef, executor, monitorMap);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
-
-        String msg = "foo";
-        container.post(null, msg);
-        actor.assertReceivesEventually(msg);
+        container.terminate();
     }
 }

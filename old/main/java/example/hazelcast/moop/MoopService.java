@@ -160,11 +160,11 @@ public class MoopService implements ManagedService, MigrationAwareService, Remot
 
         @Override
         public int localSize() {
-            int size  = 0;
-            for(MoopPartitionContainer c: MoopService.this.partitionContainers) {
+            int size = 0;
+            for (MoopPartitionContainer c : MoopService.this.partitionContainers) {
                 MoopPartition moopPartition = c.getPartition(name);
-                if(moopPartition!=null){
-                    size+=moopPartition.records.size();
+                if (moopPartition != null) {
+                    size += moopPartition.records.size();
                 }
             }
             return size;
@@ -200,10 +200,10 @@ public class MoopService implements ManagedService, MigrationAwareService, Remot
             operation.setValidateTarget(true);
             operation.setServiceName(NAME);
             try {
-                Map<Integer,Object> result = nodeService.invokeOnAllPartitions(NAME, operation);
-                int size=0;
-                for(Object s:result.values()){
-                    size+=(Integer)MoopService.this.nodeService.toObject(s);
+                Map<Integer, Object> result = nodeService.invokeOnAllPartitions(NAME, operation);
+                int size = 0;
+                for (Object s : result.values()) {
+                    size += (Integer) MoopService.this.nodeService.toObject(s);
                 }
                 return size;
             } catch (RuntimeException e) {

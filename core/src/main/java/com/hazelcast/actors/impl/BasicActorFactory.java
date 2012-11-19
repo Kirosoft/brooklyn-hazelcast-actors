@@ -8,7 +8,6 @@ import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -49,7 +48,7 @@ public class BasicActorFactory implements ActorFactory {
                     recipe.getActorClass().getName()), e);
         } catch (Exception e) {
             throw new ActorInstantiationException(
-                    format("Failed to instantiate Actor class '%s' using recipe %s", recipe.getActorClass().getName(),recipe), e);
+                    format("Failed to instantiate Actor class '%s' using recipe %s", recipe.getActorClass().getName(), recipe), e);
         }
 
         for (FieldSetter setter : getFieldSetters(recipe.getActorClass())) {

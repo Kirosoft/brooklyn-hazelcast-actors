@@ -4,8 +4,10 @@ package io.brooklyn;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.attributes.Attribute;
+import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,6 +33,8 @@ public interface ManagementContext {
      * @return
      */
     <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config);
+
+    ActorRef newEntity(EntityConfig entityConfig);
 
     void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute);
 

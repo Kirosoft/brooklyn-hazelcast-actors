@@ -1,4 +1,4 @@
-package io.brooklyn;
+package io.brooklyn.entity.softwareprocess;
 
 public enum SoftwareProcessStatus {
 

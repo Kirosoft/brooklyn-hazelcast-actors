@@ -8,7 +8,6 @@ import com.hazelcast.core.IMap;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActorContainer<A> {
     protected final BlockingQueue mailbox = new ArrayBlockingQueue(100000);
@@ -58,7 +57,7 @@ public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActo
         }
     }
 
-    public static class Factory<A extends Actor> implements ActorContainerFactory<A>{
+    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
         private IMap<ActorRef, Set<ActorRef>> monitorMap;
 
         @Override

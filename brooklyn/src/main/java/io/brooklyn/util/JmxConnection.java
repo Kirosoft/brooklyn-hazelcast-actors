@@ -15,7 +15,7 @@ import static com.hazelcast.actors.utils.Util.notNull;
  * The big difference between the JmxHelper and this class is that this JmxConnection is not going to retry
  * the connection. This is done to make calls as quickly as possible. So if the machine is not working, you
  * will not get data.
- *
+ * <p/>
  * But because the Entity can repeatedly call this method, on every call the connection can be checked and one
  * retry could be made to fix the issue.
  */
@@ -27,10 +27,10 @@ public class JmxConnection {
     public JmxConnection() {
     }
 
-    public boolean isConnected(){
+    public boolean isConnected() {
         getConnection();
 
-        if(connection == null){
+        if (connection == null) {
             return false;
         }
 

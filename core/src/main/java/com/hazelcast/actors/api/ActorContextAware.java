@@ -6,7 +6,7 @@ package com.hazelcast.actors.api;
  *
  * @author Peter Veentjer.
  */
-public interface ActorContextAware{
+public interface ActorContextAware {
 
     void setActorContext(ActorContext context);
 }

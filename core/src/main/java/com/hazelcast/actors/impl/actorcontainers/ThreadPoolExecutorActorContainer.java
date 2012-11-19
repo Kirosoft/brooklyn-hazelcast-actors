@@ -60,7 +60,7 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
             }
 
             try {
-                Object m = null;
+                Object m;
                 try {
                     m = mailbox.take();
                 } catch (InterruptedException e) {
@@ -77,10 +77,14 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
                     sender = null;
                 }
 
-                try {
-                    actor.receive(message, sender);
-                } catch (Exception exception) {
-                    handleProcessingException(sender, exception);
+                if (message == TERMINATION) {
+                    handleTermination();
+                } else {
+                    try {
+                        actor.receive(message, sender);
+                    } catch (Exception exception) {
+                        handleProcessingException(sender, exception);
+                    }
                 }
             } finally {
                 lock.set(false);
@@ -96,7 +100,6 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
         private final ExecutorService executor;
         private IMap<ActorRef, Set<ActorRef>> monitorMap;
 
-
         public Factory() {
             this(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4));
         }
@@ -107,7 +110,7 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
 
         @Override
         public void init(IMap<ActorRef, Set<ActorRef>> monitorMap) {
-            this.monitorMap = monitorMap;
+            this.monitorMap = notNull(monitorMap, "monitorMap");
         }
 
         @Override

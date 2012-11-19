@@ -11,7 +11,6 @@ import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.api.Actors;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
 import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
-import com.hazelcast.actors.utils.Util;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.nio.DataSerializable;
@@ -21,12 +20,13 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
+import static com.hazelcast.actors.utils.Util.notNull;
 import static java.lang.String.format;
 
 public abstract class AbstractActorContainer<A extends Actor> implements DataSerializable, ActorContainer<A>, ActorContext {
+    protected final static TerminateMessage TERMINATION = new TerminateMessage();
+
     protected final ActorRef ref;
     protected final ActorRecipe<A> recipe;
     protected A actor;
@@ -37,9 +37,9 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
     protected HazelcastInstance hzInstance;
 
     public AbstractActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, IMap<ActorRef, Set<ActorRef>> monitorMap) {
-        this.recipe = Util.notNull(recipe, "recipe");
-        this.ref = Util.notNull(actorRef, "getActorRef");
-        this.monitorMap = monitorMap;
+        this.recipe = notNull(recipe, "recipe");
+        this.ref = notNull(actorRef, "ref");
+        this.monitorMap = notNull(monitorMap, "monitorMap");
     }
 
     @Override
@@ -88,7 +88,7 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
             try {
                 ((ActorLifecycleAware) actor).activate();
             } catch (Exception e) {
-                 throw new ActorInstantiationException(format("Failed called %s.activate()",actor.getClass().getName()),e);
+                throw new ActorInstantiationException(format("Failed called %s.activate()", actor.getClass().getName()), e);
             }
         }
         return actor;
@@ -96,8 +96,16 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
 
     @Override
     public void terminate() throws Exception {
+        post(null, TERMINATION);
+    }
+
+    protected void handleTermination() {
         if (actor instanceof ActorLifecycleAware) {
-            ((ActorLifecycleAware) actor).terminate();
+            try {
+                ((ActorLifecycleAware) actor).terminate();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
 
         Set<ActorRef> monitors = monitorMap.get(ref);
@@ -106,8 +114,6 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
             actorRuntime.send(ref, monitors, termination);
             monitorMap.remove(ref);
         }
-
-        //todo: this is where we should do cleanup
     }
 
     protected void handleProcessingException(ActorRef sender, Exception exception) {
@@ -141,6 +147,9 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
             this.content = content;
             this.sender = sender;
         }
+    }
+
+    private static class TerminateMessage {
     }
 
     @Override

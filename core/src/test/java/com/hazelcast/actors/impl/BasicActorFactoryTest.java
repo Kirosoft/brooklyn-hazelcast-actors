@@ -1,10 +1,10 @@
 package com.hazelcast.actors.impl;
 
 import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.Injected;
+import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 import com.hazelcast.actors.utils.MutableMap;
 import org.junit.Test;
 
