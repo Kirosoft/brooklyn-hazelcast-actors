@@ -14,6 +14,8 @@ import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
+import io.brooklyn.locations.Location;
+import io.brooklyn.locations.SshMachineLocation;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
@@ -196,22 +198,22 @@ public class LocalManagementContext implements ManagementContext {
     }
 
 
-    //For the time being it is a simple mechanism; the driver class returned by the entity, is the actual class
-    //of the driver instance to be used. In the future we can use the same mechanism as in Brooklyn.
     public SoftwareProcessDriver newDriver(SoftwareProcess entity) {
         notNull(entity, "entity");
 
+        //todo: It is unclear why the compiler wants this location cast here.
+        Location location = (Location) entity.location.get();
         Class<? extends SoftwareProcessDriver> driver = entity.getDriverClass();
+
         try {
-            Constructor<? extends SoftwareProcessDriver> driverConstructor = driver.getConstructor(entity.getClass());
-            return driverConstructor.newInstance(entity);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
+            if (location instanceof SshMachineLocation) {
+                Constructor<? extends SoftwareProcessDriver> driverConstructor = driver.getConstructor(
+                        entity.getClass(), SshMachineLocation.class);
+                return driverConstructor.newInstance(entity, (SshMachineLocation) location);
+            } else {
+                throw new RuntimeException("No driver found for Entity:" + entity + " and location:" + location);
+            }
+        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }

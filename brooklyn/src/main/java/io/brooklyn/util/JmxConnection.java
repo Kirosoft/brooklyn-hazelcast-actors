@@ -43,7 +43,7 @@ public class JmxConnection {
     }
 
     public void init(String host, int port) {
-        init(String.format("impl:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi", notNull(host, "host"), port));
+        init(String.format("service:jmx:rmi:///jndi/rmi://%s:%s/jmxrmi", notNull(host, "host"), port));
     }
 
     public void init(String url) {
@@ -70,6 +70,7 @@ public class JmxConnection {
             if (url == null) {
                 return null;
             }
+            System.out.println(url);
             try {
                 JMXServiceURL serviceUrl = new JMXServiceURL(url);
                 Map env = new HashMap();

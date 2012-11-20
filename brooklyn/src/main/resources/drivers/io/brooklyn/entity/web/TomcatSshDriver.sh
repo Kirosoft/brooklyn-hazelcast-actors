@@ -53,7 +53,7 @@ function launch() {
               -Dcom.sun.management.jmxremote.port=$JMX_PORT"
    echo "Starting Launch ======================================================"
    cd $RUN_DIR/apache-tomcat-$VERSION
-   bin/catalina.sh start
+   nohup bin/catalina.sh start &
    echo "Finished Launch ======================================================"
 }
 

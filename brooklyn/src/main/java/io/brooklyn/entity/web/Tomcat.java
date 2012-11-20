@@ -1,11 +1,10 @@
 package io.brooklyn.entity.web;
 
-import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
+import io.brooklyn.entity.Start;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
-import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessStatus;
 import io.brooklyn.util.JmxConnection;
 
@@ -35,7 +34,6 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     public final IntAttributeRef httPort = newIntAttributeRef(TomcatConfig.HTTP_PORT);
     public final IntAttributeRef shutdownPort = newIntAttributeRef(TomcatConfig.SHUTDOWN_PORT);
     public final IntAttributeRef jmxPort = newIntAttributeRef(TomcatConfig.JMX_PORT);
-    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(TomcatConfig.CLUSTER);
     public final LongAttributeRef usedHeap = newLongAttributeRef(TomcatConfig.USED_HEAP);
     public final LongAttributeRef maxHeap = newLongAttributeRef(TomcatConfig.MAX_HEAP);
     public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
@@ -43,48 +41,56 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     public final JmxConnection jmxConnection = new JmxConnection();
 
     @Override
-    public Class<? extends SoftwareProcessDriver> getDriverClass() {
-        return TomcatDriver.class;
+    public Class<TomcatSshDriver> getDriverClass() {
+        return TomcatSshDriver.class;
     }
 
     @Override
     public void activate() throws Exception {
         super.activate();
 
-        //the actor will register itself, so that every second it gets a message to update is jmx information
+        //the actor will register itself, so that every second it gets a message to update its jmx information
         //if that is available.
-        repeat(new JmxUpdate(), 1000);
+        repeatingSelfNotification(new JmxUpdate(), 1000);
     }
 
-    public void receive(Undeployment msg) {
+    public void receive(Undeployment undeployment) {
         System.out.println("Undeploy");
         getDriver().undeploy();
     }
 
-    public void receive(Deployment msg) {
-        System.out.println("Deploying:" + msg.url);
+    public void receive(Deployment deployment) {
+        System.out.println("Deploying:" + deployment.url);
         //todo: would be best to offload the work map the potentially long copy action
-        getDriver().deploy(msg.url);
+        getDriver().deploy(deployment.url);
     }
 
-    public void receive(StartTomcat msg) {
-        System.out.println("StartTomcat");
+    public void receive(Start start) {
+        System.out.println("Tomcat:Start");
 
-        location.set(msg.location);
+        location.set(start.location);
+        System.out.println("Tomcat:start location set");
 
         try {
             state.set(SoftwareProcessStatus.STARTING);
             TomcatDriver driver = getDriver();
+            System.out.println("Tomcat.Start installing");
             driver.install();
+
+            System.out.println("Tomcat.Start customizing");
             driver.customize();
+
+            System.out.println("Tomcat.Start launching");
             driver.launch();
         } catch (Exception e) {
             e.printStackTrace();
             state.set(SoftwareProcessStatus.FAILURE);
         }
+
+        System.out.println("Tomcat:Start completed");
     }
 
-    public void receive(StopTomcat msg) {
+    public void receive(Stop stop) {
         System.out.println("StopTomcat");
         try {
             state.set(SoftwareProcessStatus.STOPPING);
@@ -96,15 +102,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public void receive(TomcatFailure msg) {
+    public void receive(TomcatFailure failure) {
         System.out.println("TomcatFailure at: " + self());
-        ActorRef cluster = this.cluster.get();
-        if (cluster != null) {
-            getActorRuntime().send(cluster, new WebCluster.ChildFailure(self()));
-        }
     }
 
-    public void receive(JmxUpdate msg) {
+    public void receive(JmxUpdate update) {
         if (state.get().equals(SoftwareProcessStatus.UNSTARTED)) {
             return;
         }
@@ -129,17 +131,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     public static class TomcatFailure implements Serializable {
     }
 
-    public static class StopTomcat implements Serializable {
-    }
-
     public static class JmxUpdate implements Serializable {
-    }
-
-    public static class StartTomcat extends Start {
-
-        public StartTomcat(String location) {
-            super(location);
-        }
     }
 
     public static class Undeployment implements Serializable {

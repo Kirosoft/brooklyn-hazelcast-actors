@@ -286,11 +286,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         @Override
-        public void repeat(final ActorRef ref, final Object msg, int delaysMs) {
+        public void repeatingNotification(final ActorRef destination, final Object notification, int delaysMs) {
             Runnable command = new Runnable() {
                 @Override
                 public void run() {
-                    send(ref, msg);
+                    send(destination, notification);
                 }
             };
             scheduler.scheduleWithFixedDelay(command, 0, delaysMs, TimeUnit.MILLISECONDS);

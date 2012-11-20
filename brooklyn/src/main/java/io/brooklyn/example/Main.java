@@ -11,11 +11,31 @@ import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
-import io.brooklyn.entity.web.TomcatConfig;
+import io.brooklyn.entity.Start;
+import io.brooklyn.entity.application.ApplicationConfig;
+import io.brooklyn.locations.SshMachineLocation;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Map;
+import java.util.Properties;
 
 public class Main {
+
+    private static String privateKeyFile;
+
+    static {
+        Properties properties = new Properties();
+        File brooklynProperties = new File(System.getProperty("user.home"), ".brooklyn/brooklyn.properties");
+        try {
+            properties.load(new FileInputStream(brooklynProperties));
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        privateKeyFile = (String) properties.get("brooklyn.jclouds.private-key-file");
+    }
 
     public static void main(String[] args) throws Exception {
         Config config = new Config();
@@ -37,11 +57,17 @@ public class Main {
         //Echoer echor = managementContext.newActiveObject(Echoer.class);
         //echor.echo("Echo this!");
 
-        ActorRef application = actorRuntime.newActor(ExampleWebApplication.class);
-        actorRuntime.send(application, new ExampleWebApplication.StartMessage());
+        //todo:
+        SshMachineLocation location = new SshMachineLocation("localhost");
+        location.setUserName("alarmnummer");
+        location.setPrivateKey(privateKeyFile);
 
-        TomcatConfig tomcatConfig = new TomcatConfig().httpPort(8085).jmxPort(20001).shutdownPort(9001);
-        ActorRef tomcat = managementContext.newEntity(tomcatConfig);
+        ApplicationConfig applicationConfig = new ApplicationConfig(ExampleWebApplication.class);
+        ActorRef application = managementContext.newEntity(applicationConfig);
+        actorRuntime.send(application, new Start(location));
+
+        //TomcatConfig tomcatConfig = new TomcatConfig().httpPort(8085).jmxPort(20001).shutdownPort(9001);
+        //ActorRef tomcat = managementContext.newEntity(tomcatConfig);
 
         //actorApplication.startServer();
 

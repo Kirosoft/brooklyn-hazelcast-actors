@@ -191,6 +191,11 @@ public final class AttributeMap {
         }
 
         @Override
+        public boolean isNull() {
+            return get()==null;
+        }
+
+        @Override
         public String toString() {
             E value = get();
             return value == null ? "null" : value.toString();

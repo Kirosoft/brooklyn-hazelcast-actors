@@ -13,7 +13,18 @@ public interface ActorRuntime {
 
     void terminate(ActorRef target);
 
-    void repeat(ActorRef ref, Object msg, int delaysMs);
+    /**
+     * Repeatedly sends a notification message to an actor. Using this mechanism instead of an internal scheduler
+     * simplifies the design and doesn't violate the 'single threaded access' of an actor.
+     *
+     * This functionality is useful if you want an actor to update its internal state frequently. A good example is
+     * the jmx information of a JavaSoftwareProcess that every second could be read.
+     *
+     * @param destination the actor to send the notification to.
+     * @param notification the notification.
+     * @param delaysMs the delay between every notification.
+     */
+    void repeatingNotification(ActorRef destination, Object notification, int delaysMs);
 
     void monitor(ActorRef listener, ActorRef target);
 

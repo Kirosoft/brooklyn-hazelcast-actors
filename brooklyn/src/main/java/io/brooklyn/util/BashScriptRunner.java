@@ -2,6 +2,7 @@ package io.brooklyn.util;
 
 
 import com.google.common.io.Files;
+import io.brooklyn.locations.SshMachineLocation;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,9 +17,11 @@ public class BashScriptRunner {
 
     private String rawScript;
     private final Map<String, Object> environmentVariables = new HashMap();
+    private SshMachineLocation sshMachineLocation;
 
-    public BashScriptRunner(String rawScript) {
+    public BashScriptRunner(String rawScript, SshMachineLocation sshMachineLocation) {
         this.rawScript = rawScript;
+        this.sshMachineLocation = sshMachineLocation;
     }
 
     public void addEnvironmentVariable(String variable, Object value) {
@@ -41,36 +44,15 @@ public class BashScriptRunner {
 
         try {
             File script = buildFinalScript(file);
-            System.out.println(script.getAbsoluteFile());
+            sshMachineLocation.runScriptFunction(script.getAbsolutePath(), function);
 
-            String[] command;
-            if (function != null) {
-                command = new String[]{"/bin/sh", "-c", String.format("source %s && %s", script.getAbsolutePath(), function)};
-            } else {
-                command = new String[]{"/bin/sh", "-c", script.getAbsolutePath()};
-            }
-
-            StringBuffer sb = new StringBuffer();
-            for (String s : command) {
-                sb.append(s + " ");
-            }
-            System.out.println("===========================");
-            System.out.println(sb);
-
-            ProcessBuilder processBuilder = new ProcessBuilder(command);
-            processBuilder.redirectErrorStream();
-            Process process = processBuilder.start();
-            new LoggerThread(process.getErrorStream(), true).start();
-            new LoggerThread(process.getInputStream(), false).start();
-
-            int exitCode = process.waitFor();
+            int exitCode = 0;//process.waitFor();
             if (exitCode != 0) {
                 System.out.println("exited with " + exitCode);
             }
             return exitCode;
         } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
     }

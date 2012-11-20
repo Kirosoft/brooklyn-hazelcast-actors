@@ -101,8 +101,8 @@ public abstract class Entity extends DispatchingActor {
         attributeMap.subscribe(subscription.attributeName, subscription.subscriber);
     }
 
-    public final void repeat(Object msg, int delayMs) {
-        getActorRuntime().repeat(self(), msg, delayMs);
+    public final void repeatingSelfNotification(Object msg, int delayMs) {
+        getActorRuntime().repeatingNotification(self(), msg, delayMs);
     }
 
     public final void subscribeToAttribute(BasicAttributeRef<ActorRef> listener, ActorRef target, Attribute attribute) {

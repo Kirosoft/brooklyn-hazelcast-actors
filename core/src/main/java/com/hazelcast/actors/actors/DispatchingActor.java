@@ -150,7 +150,6 @@ public class DispatchingActor extends AbstractActor {
             }
 
             if (bestMatch != null) {
-                System.out.println("Best Match for: " + messageClass + " is method: " + bestMatch);
                 checkValid(bestMatch);
                 return bestMatch;
             }

@@ -8,20 +8,29 @@ TODO
 
 - undeploy of an arifact
 
+- with the namespace stuff concurrent behavior is a bit unclear; e.g. it could be that you miss the registration
+
+- integrate with jclouds
+
+- web cluster should not be hard connected to tomcat.
+
+IDEAS
+
+- currently all attributes are written to hazelcast. Some attributes could be transient
+
+- tomcat artifacts can automatically be discovered
+
+- pass through messages? e.g. webcluster can register certain messages as pass through messages and will automatically
+be send to all children.
+
+DONE
+
 - use a config object to create entities.
 
 - active object implementation
 
 - the webcluster should configure the ports of its tomcat instances correctly so that multiple instances
 can run in parallel.
-
-- tomcat artifacts can automatically be discovered
-
-- idea: currently all attributes are written to hazelcast. Some attributes could be transient
-
-- with the namespace stuff concurrent behavior is a bit unclear; e.g. it could be that you miss the registration
-
-DONE
 
 - when an entity is created, automatically the properties should be copied to the attributes.
 

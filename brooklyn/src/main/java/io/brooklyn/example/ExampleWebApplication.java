@@ -1,33 +1,23 @@
 package io.brooklyn.example;
 
 import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.entity.Entity;
-import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
+import io.brooklyn.entity.Start;
+import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.web.WebCluster;
 import io.brooklyn.entity.web.WebClusterConfig;
+import io.brooklyn.locations.SshMachineLocation;
 
-import java.io.Serializable;
-
-public class ExampleWebApplication extends Entity {
+public class ExampleWebApplication extends Application {
 
     private final BasicAttributeRef<ActorRef> web = newBasicAttributeRef("web");
 
-    public void receive(StartMessage msg) {
+    public void receive(Start msg) {
+        System.out.println("ExampleWebApplication:Start");
+        location.set(msg.location);
         web.set(newEntity(new WebClusterConfig()));
+        send(web, new Start(location));
         send(web, new WebCluster.ScaleTo(1));
-    }
-
-    public void receive(WebCluster.ScaleTo msg, ActorRef sender) {
-        send(sender, msg);
-    }
-
-    public void receive(WebCluster.SimulateTomcatFailure msg, ActorRef sender) {
-        send(sender, msg);
-    }
-
-    public static class StartMessage implements Serializable {
-
+        System.out.println("ExampleWebApplication:Started");
     }
 }
