@@ -2,6 +2,8 @@ package io.brooklyn.entity.web;
 
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.attributes.IntAttributeRef;
+import io.brooklyn.attributes.LongAttributeRef;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessStatus;
@@ -30,12 +32,12 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
     //a map (backedup by hazelcast). This map can be accessed directly either using strings or attributes.
     //So these references are here to demonstrate an alternative way of accessing attributes.
-    public final BasicAttributeRef<Integer> httPort = newBasicAttributeRef(TomcatConfig.HTTP_PORT);
-    public final BasicAttributeRef<Integer> shutdownPort = newBasicAttributeRef(TomcatConfig.SHUTDOWN_PORT);
-    public final BasicAttributeRef<Integer> jmxPort = newBasicAttributeRef(TomcatConfig.JMX_PORT);
+    public final IntAttributeRef httPort = newIntAttributeRef(TomcatConfig.HTTP_PORT);
+    public final IntAttributeRef shutdownPort = newIntAttributeRef(TomcatConfig.SHUTDOWN_PORT);
+    public final IntAttributeRef jmxPort = newIntAttributeRef(TomcatConfig.JMX_PORT);
     public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(TomcatConfig.CLUSTER);
-    public final BasicAttributeRef<Long> usedHeap = newBasicAttributeRef(TomcatConfig.USED_HEAP);
-    public final BasicAttributeRef<Long> maxHeap = newBasicAttributeRef(TomcatConfig.MAX_HEAP);
+    public final LongAttributeRef usedHeap = newLongAttributeRef(TomcatConfig.USED_HEAP);
+    public final LongAttributeRef maxHeap = newLongAttributeRef(TomcatConfig.MAX_HEAP);
     public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
 
     public final JmxConnection jmxConnection = new JmxConnection();
@@ -51,7 +53,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
         //the actor will register itself, so that every second it gets a message to update is jmx information
         //if that is available.
-        getActorRuntime().repeat(self(), new JmxUpdate(), 1000);
+        repeat(new JmxUpdate(), 1000);
     }
 
     public void receive(Undeployment msg) {
@@ -68,7 +70,6 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     public void receive(StartTomcat msg) {
         System.out.println("StartTomcat");
 
-        cluster.set(msg.cluster);
         location.set(msg.location);
 
         try {
@@ -135,15 +136,9 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public static class StartTomcat extends Start {
-        public final ActorRef cluster;
 
         public StartTomcat(String location) {
-            this(location, null);
-        }
-
-        public StartTomcat(String location, ActorRef cluster) {
             super(location);
-            this.cluster = cluster;
         }
     }
 

@@ -6,6 +6,14 @@ import io.brooklyn.util.BashScriptRunner;
 
 import java.io.File;
 
+/**
+ * The Driver for Tomcat.
+ * <p/>
+ * Currently there is no system in place that selects a drivers for the right environment, e.g. ssh. Or even more
+ * concrete, centos. That can all be added in the
+ * {@link io.brooklyn.ManagementContext#newDriver(io.brooklyn.entity.softwareprocess.SoftwareProcess)} method. Since
+ * we already know how to do it, we are not going to do it again.
+ */
 public class TomcatDriver implements SoftwareProcessDriver {
     private final Tomcat tomcat;
 
@@ -21,6 +29,8 @@ public class TomcatDriver implements SoftwareProcessDriver {
         return classLoader.getResource(name).getFile();
     }
 
+    //currently we manually copy the properties to the script. But perhaps some kind of auto copy would be nice
+    //to prevent duplication.
     private BashScriptRunner buildBashScriptRunner() {
         BashScriptRunner runner = new BashScriptRunner(findScript());
         runner.addEnvironmentVariable("RUN_DIR", tomcat.runDir);
@@ -32,16 +42,18 @@ public class TomcatDriver implements SoftwareProcessDriver {
     }
 
     public void deploy(String url) {
-        buildBashScriptRunner().runZeroExitCode("deploy");
+        //todo:
+        buildBashScriptRunner().runWithoutFailure("deploy");
     }
 
     public void undeploy() {
-        buildBashScriptRunner().runZeroExitCode("undeploy");
+        //todo:
+        buildBashScriptRunner().runWithoutFailure("undeploy");
     }
 
     @Override
     public void customize() {
-        buildBashScriptRunner().runZeroExitCode("customize");
+        buildBashScriptRunner().runWithoutFailure("customize");
     }
 
     @Override
@@ -49,7 +61,7 @@ public class TomcatDriver implements SoftwareProcessDriver {
         //tomcat.getManagementContext().executeLocally(
         //        new Runnable() {
         //            public void run() {
-        buildBashScriptRunner().runZeroExitCode("install");
+        buildBashScriptRunner().runWithoutFailure("install");
         //                tomcat.send(new Callback() {
         //                    public void run() {
         //                        tomcat.state.set("foo");
@@ -62,7 +74,7 @@ public class TomcatDriver implements SoftwareProcessDriver {
 
     @Override
     public void launch() {
-        buildBashScriptRunner().runZeroExitCode("launch");
+        buildBashScriptRunner().runWithoutFailure("launch");
         tomcat.jmxConnection.init(tomcat.location.get(), tomcat.jmxPort.get());
     }
 

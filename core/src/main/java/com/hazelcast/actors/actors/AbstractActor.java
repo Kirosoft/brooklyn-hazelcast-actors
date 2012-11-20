@@ -9,6 +9,8 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.core.HazelcastInstance;
 
+import javax.naming.directory.BasicAttribute;
+
 import static com.hazelcast.actors.utils.Util.notNull;
 
 public abstract class AbstractActor implements Actor,

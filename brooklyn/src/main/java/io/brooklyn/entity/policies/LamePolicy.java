@@ -1,4 +1,4 @@
-package io.brooklyn.policy;
+package io.brooklyn.entity.policies;
 
 import com.hazelcast.actors.actors.DispatchingActor;
 import io.brooklyn.attributes.SensorEvent;

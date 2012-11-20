@@ -1,4 +1,4 @@
-package io.brooklyn.policy;
+package io.brooklyn.entity.policies;
 
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.Attribute;
@@ -8,9 +8,7 @@ import io.brooklyn.entity.Entity;
 
 public class LoadBalancingPolicy extends Entity {
 
-    public static final Attribute<ActorRef> CLUSTER = new Attribute<ActorRef>("cluster");
-
-    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(CLUSTER);
+    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(LoadBalancingPolicyConfig.CLUSTER);
 
     public void receive(SensorEvent e) {
         //if (!SoftwareProcessEntityStatus.FAILURE.equals(e.getNewValue())) {

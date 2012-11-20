@@ -2,26 +2,31 @@ package io.brooklyn.entity.web;
 
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
-import com.hazelcast.actors.utils.MutableMap;
 import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
 import io.brooklyn.entity.Entity;
-import io.brooklyn.policy.LoadBalancingPolicy;
+import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.policies.LoadBalancingPolicyConfig;
 
 import java.io.Serializable;
 
 public class WebCluster extends Entity {
 
-    private ListAttributeRef<ActorRef> children = newListAttributeRef("children", ActorRef.class);
-    private BasicAttributeRef<ActorRef> loadBalancingPolicy = newBasicAttributeRef("loadBalancingPolicy", ActorRef.class);
+    private final ListAttributeRef<ActorRef> children = newListAttributeRef("children", ActorRef.class);
+    private final BasicAttributeRef<ActorRef> loadBalancingPolicy = newBasicAttributeRef("loadBalancingPolicy", ActorRef.class);
+    private final IntAttributeRef nextHttpPort = newIntAttributeRef("nextHttpPort", 8085);
+    private final IntAttributeRef nextJmxPort = newIntAttributeRef("nextJmxPort", 20001);
+    private final IntAttributeRef nextShutdownPort = newIntAttributeRef("nextShutdownPort", 9001);
 
     @Override
     public void activate() throws Exception {
         super.activate();
 
-        loadBalancingPolicy.set(getActorRuntime().newActor(
-                LoadBalancingPolicy.class,
-                MutableMap.map(LoadBalancingPolicy.CLUSTER.getName(), self())));
+        EntityConfig lbPolicyConfig = new LoadBalancingPolicyConfig()
+                .addProperty(LoadBalancingPolicyConfig.CLUSTER, self());
+
+        loadBalancingPolicy.set(newEntity(lbPolicyConfig));
     }
 
     public void receive(ChildFailure message) {
@@ -39,7 +44,7 @@ public class WebCluster extends Entity {
 
         //select a random tomcat machine to fail
         ActorRef randomFailedTomcat = children.get(0);
-        getActorRuntime().send(self(), randomFailedTomcat, new Tomcat.TomcatFailure());
+        send(randomFailedTomcat, new Tomcat.TomcatFailure());
     }
 
     public void receive(ScaleTo scaleTo) {
@@ -51,20 +56,25 @@ public class WebCluster extends Entity {
         } else if (delta > 0) {
             //we need to add machines.
             for (int k = 0; k < delta; k++) {
-                ActorRef tomcat = getActorRuntime().newActor(Tomcat.class);
+                TomcatConfig tomcatConfig = new TomcatConfig()
+                        .httpPort(nextHttpPort.getAndInc())
+                        .jmxPort(nextJmxPort.getAndInc())
+                        .shutdownPort(nextShutdownPort.getAndInc())
+                        .cluster(self());
+                ActorRef tomcat = newEntity(tomcatConfig);
                 children.add(tomcat);
 
-                //subscribeToAttribute the loadbalancingPolicy to the status field of tomcat.
-                getManagementContext().subscribeToAttribute(loadBalancingPolicy.get(), tomcat, Tomcat.STATE);
+                //hook the loadBalancingPolicy up to the newly created tomcat.
+                subscribeToAttribute(loadBalancingPolicy, tomcat, Tomcat.STATE);
 
                 //lets start tomcat.
-                getActorRuntime().send(self(), tomcat, new Tomcat.StartTomcat("localhost", self()));
+                send(tomcat, new Tomcat.StartTomcat("localhost"));
             }
         } else {
             //we need to remove machines.
             for (int k = 0; k < -delta; k++) {
                 ActorRef tomcat = children.removeFirst();
-                getActorRuntime().send(self(), tomcat, new Tomcat.StopTomcat());
+                send(tomcat, new Tomcat.StopTomcat());
             }
         }
     }

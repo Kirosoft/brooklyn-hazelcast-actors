@@ -22,6 +22,9 @@ import static com.hazelcast.actors.utils.Util.notNull;
  * All the properties inside the EntityConfig are automatically copied to the attributes of an entity when the Entity
  * is started.
  *
+ * EntityConfig is mutable and not threadsafe. In most cases they will be created (written) before they are used (read).
+ * So this should not be an issue. Using an immutable approach would also be an issue.
+ *
  * @param <E>
  */
 public class EntityConfig<E extends Entity> implements Serializable {

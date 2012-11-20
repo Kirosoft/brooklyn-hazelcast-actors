@@ -108,7 +108,67 @@ public final class AttributeMap {
         return entity.self() + "." + attributeName + ".listeners";
     }
 
-    public final class BasicAttributeRefImpl<E> implements BasicAttributeRef<E> {
+    public IntAttributeRef newIntAttribute(final Attribute<Integer> attribute) {
+        return new IntAttributeRef() {
+            @Override
+            public int get() {
+                return getAttribute(attribute);
+            }
+
+            @Override
+            public void set(int newValue) {
+                setAttribute(attribute, newValue);
+            }
+
+            @Override
+            public int getAndInc() {
+                int oldValue = getAttribute(attribute);
+                setAttribute(attribute, oldValue + 1);
+                return oldValue;
+            }
+
+            @Override
+            public String getName() {
+                return attribute.getName();
+            }
+
+            public String toString() {
+                return "" + get();
+            }
+        };
+    }
+
+    public LongAttributeRef newLongAttribute(final Attribute<Long> attribute) {
+        return new LongAttributeRef() {
+            @Override
+            public long get() {
+                return getAttribute(attribute);
+            }
+
+            @Override
+            public void set(long newValue) {
+                setAttribute(attribute, newValue);
+            }
+
+            @Override
+            public long getAndInc() {
+                long oldValue = getAttribute(attribute);
+                setAttribute(attribute, oldValue + 1);
+                return oldValue;
+            }
+
+            @Override
+            public String getName() {
+                return attribute.getName();
+            }
+
+            public String toString() {
+                return "" + get();
+            }
+        };
+    }
+
+    private class BasicAttributeRefImpl<E> implements BasicAttributeRef<E> {
         private final Attribute<E> attribute;
 
         public BasicAttributeRefImpl(Attribute<E> attribute) {

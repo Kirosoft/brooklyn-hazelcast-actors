@@ -29,7 +29,7 @@ public class BashScriptRunner {
         return run(null);
     }
 
-    public void runZeroExitCode(String function) {
+    public void runWithoutFailure(String function) {
         int exitCode = run(function);
         if (exitCode != 0) {
             throw new IllegalStateException("exitcode:" + exitCode);
