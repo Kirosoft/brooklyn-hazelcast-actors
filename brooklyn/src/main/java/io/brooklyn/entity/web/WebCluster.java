@@ -1,17 +1,16 @@
 package io.brooklyn.entity.web;
 
+import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.MessageDeliveryFailure;
+import com.hazelcast.examples.TestApp;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.Start;
 import io.brooklyn.entity.policies.LoadBalancingPolicyConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
-import io.brooklyn.locations.Location;
-import io.brooklyn.locations.SshMachineLocation;
+import io.brooklyn.example.Echoer;
 
 import java.io.Serializable;
 
@@ -19,35 +18,28 @@ public class WebCluster extends Entity {
 
     private final ListAttributeRef<ActorRef> children = newListAttributeRef("children", ActorRef.class);
     private final BasicAttributeRef<ActorRef> loadBalancingPolicy = newBasicAttributeRef("loadBalancingPolicy", ActorRef.class);
-    private final IntAttributeRef nextHttpPort = newIntAttributeRef("nextHttpPort", 8085);
-    private final IntAttributeRef nextJmxPort = newIntAttributeRef("nextJmxPort", 20001);
-    private final IntAttributeRef nextShutdownPort = newIntAttributeRef("nextShutdownPort", 9001);
-    public final BasicAttributeRef<Location> location = newBasicAttributeRef("location");
 
     @Override
     public void activate() throws Exception {
-        System.out.println("WebCluster:Activate");
-
+        System.out.println(self() + ":WebCluster:Activate");
         super.activate();
-
     }
 
-    public void receive(Start start){
-        System.out.println("WebCluster:Start");
+    public void receive(Start start) {
+        System.out.println(self() + ":WebCluster:Start");
         location.set(start.location);
-        System.out.println("WebCluster:Complete");
+
+        EntityConfig lbPolicyConfig = new LoadBalancingPolicyConfig()
+                .addProperty(LoadBalancingPolicyConfig.CLUSTER, self());
+
+        loadBalancingPolicy.set(newEntity(lbPolicyConfig));
+        send(loadBalancingPolicy, start);
+
+        System.out.println(self() + ":WebCluster:Start Complete");
     }
 
     public void receive(ScaleTo scaleTo) {
-        System.out.println("WebCluster.ScaleToMessage@" + self());
-
-        //todo: this code should be moved to the activate method. The problem is that Hazelcast currently runs into a
-        //deadlock while doing hazelcast operations in the activate method.
-        if (loadBalancingPolicy.isNull()) {
-            EntityConfig lbPolicyConfig = new LoadBalancingPolicyConfig()
-                    .addProperty(LoadBalancingPolicyConfig.CLUSTER, self());
-            loadBalancingPolicy.set(newEntity(lbPolicyConfig));
-        }
+        System.out.println(self() + ":WebCluster.ScaleTo");
 
         int delta = scaleTo.size - children.size();
         if (delta == 0) {
@@ -55,15 +47,15 @@ public class WebCluster extends Entity {
         } else if (delta > 0) {
             //we need to add machines.
             for (int k = 0; k < delta; k++) {
-                TomcatConfig tomcatConfig = new TomcatConfig()
-                        .httpPort(nextHttpPort.getAndInc())
-                        .jmxPort(nextJmxPort.getAndInc())
-                        .shutdownPort(nextShutdownPort.getAndInc());
-                ActorRef webServer = newEntity(tomcatConfig);
+                //todo: we want to use a factory here. We do not want to be tied to tomcat.
+                ActorRef webServer = newEntity(new TomcatConfig());
                 children.add(webServer);
 
                 //hook the loadBalancingPolicy up to the newly created webServer.
                 subscribeToAttribute(loadBalancingPolicy, webServer, SoftwareProcess.STATE);
+
+                ActorRef echo = getActorRuntime().newActor(EchoActor.class);
+                subscribeToAttribute(echo, webServer, TomcatConfig.USED_HEAP);
 
                 //lets start webServer.
                 send(webServer, new Start(location));
@@ -75,13 +67,11 @@ public class WebCluster extends Entity {
                 send(webServer, new SoftwareProcess.Stop());
             }
         }
+
+        System.out.println(self() + ":WebCluster.ScaleTo Complete");
     }
 
-    public void receive(MessageDeliveryFailure messageDeliveryFailure) {
-        //todo: react on child processing failures
-    }
-
-    //scales the webcluster to a certain size.
+    //scales the webcluster to a certain size. This will be send by the loadBalancingPolicy.
     public static class ScaleTo implements Serializable {
         public final int size;
 

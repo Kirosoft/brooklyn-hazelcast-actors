@@ -1,7 +1,7 @@
 package io.brooklyn.entity;
 
+import brooklyn.location.Location;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.locations.Location;
 
 import java.io.Serializable;
 

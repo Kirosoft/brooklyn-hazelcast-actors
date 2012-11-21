@@ -1,18 +1,20 @@
 TODO
 
-- the location of the entity is now hard coded.
+- Tomcat:the tomcatdriver.isRunning method
 
-- the tomcatdriver.isRunning method
+- Tomcat:deploying of an artifact
 
-- deploying of an artifact
-
-- undeploy of an arifact
+- Tomcat:undeploy of an artifact
 
 - with the namespace stuff concurrent behavior is a bit unclear; e.g. it could be that you miss the registration
 
 - integrate with jclouds
 
 - web cluster should not be hard connected to tomcat.
+
+- managementcontext: the 'application properties' should be available from the management context.
+
+- concurrent startups from tomcat on the same machine cause problems due to free port conflicts.
 
 IDEAS
 
@@ -23,7 +25,24 @@ IDEAS
 - pass through messages? e.g. webcluster can register certain messages as pass through messages and will automatically
 be send to all children.
 
+- the attributes are stored with the attribute name as key; this means that there will not be any data affinity.
+So we need to store the attributes on the partition key.
+
 DONE
+
+- make use of the PortRange
+
+- the Location is now responsible for determining the free port based on the port range.
+
+- make use of the original brooklyn location
+
+- sshmachinelocation: fix the key
+
+- sshmachinelocation: waiting for command completion.
+
+- location is now passed using start message
+
+- added sshj for remoting.
 
 - use a config object to create entities.
 

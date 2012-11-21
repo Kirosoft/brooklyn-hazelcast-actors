@@ -1,6 +1,7 @@
 package io.brooklyn.entity.web;
 
-import com.hazelcast.actors.api.ActorRef;
+import brooklyn.location.PortRange;
+import brooklyn.location.basic.PortRanges;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
 
@@ -14,10 +15,11 @@ import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
  */
 public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
 
-    public static final Attribute<Integer> HTTP_PORT = new Attribute<>("httpPort", 8080);
-    public static final Attribute<Integer> SHUTDOWN_PORT = new Attribute<>("shutdownPort", 8005);
-    public static final Attribute<Integer> JMX_PORT = new Attribute<>("jmxPort", 10000);
+    public static final Attribute<PortRange> HTTP_PORT = new Attribute<>("httpPort", PortRanges.fromString("8800+"));
+    public static final Attribute<PortRange> SHUTDOWN_PORT = new Attribute<>("shutdownPort", PortRanges.fromString("9000+"));
+    public static final Attribute<PortRange> JMX_PORT = new Attribute<>("jmxPort", PortRanges.fromString("10000+"));
     public static final Attribute<String> VERSION = new Attribute<>("version", "7.0.32");
+
     public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
     public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
 
@@ -25,18 +27,18 @@ public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
         super(Tomcat.class);
     }
 
-    public TomcatConfig httpPort(int httpPort) {
-        addProperty(HTTP_PORT, httpPort);
+    public TomcatConfig httpPort(String httpPort) {
+        addProperty(HTTP_PORT, PortRanges.fromString(httpPort));
         return this;
     }
 
-    public TomcatConfig shutdownPort(int shutdownPort) {
-        addProperty(SHUTDOWN_PORT, shutdownPort);
+    public TomcatConfig shutdownPort(String shutdownPort) {
+        addProperty(SHUTDOWN_PORT, PortRanges.fromString(shutdownPort));
         return this;
     }
 
-    public TomcatConfig jmxPort(int jmxPort) {
-        addProperty(JMX_PORT, jmxPort);
+    public TomcatConfig jmxPort(String jmxPort) {
+        addProperty(JMX_PORT, PortRanges.fromString(jmxPort));
         return this;
     }
 

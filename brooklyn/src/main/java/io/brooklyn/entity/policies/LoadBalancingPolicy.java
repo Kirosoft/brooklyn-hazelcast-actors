@@ -5,10 +5,14 @@ import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.SensorEvent;
 import io.brooklyn.entity.Entity;
+import io.brooklyn.entity.Start;
 
 public class LoadBalancingPolicy extends Entity {
 
     public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(LoadBalancingPolicyConfig.CLUSTER);
+
+    public void receive(Start start){}
+
 
     public void receive(SensorEvent e) {
         //if (!SoftwareProcessEntityStatus.FAILURE.equals(e.getNewValue())) {

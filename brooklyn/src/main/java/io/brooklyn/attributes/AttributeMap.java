@@ -1,5 +1,8 @@
 package io.brooklyn.attributes;
 
+import brooklyn.location.Location;
+import brooklyn.location.PortRange;
+import brooklyn.location.PortSupplier;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.core.HazelcastInstance;
@@ -52,11 +55,6 @@ public final class AttributeMap {
         }
     }
 
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(final Attribute<E> attribute) {
-        notNull(attribute, "attribute");
-        return new BasicAttributeRefImpl<E>(attribute);
-    }
-
     public <E> E getAttribute(Attribute<E> attribute) {
         notNull(attribute, "attribute");
         E value = (E) attributeMap.get(attribute.getName());
@@ -80,6 +78,44 @@ public final class AttributeMap {
         }
         return value;
     }
+
+    public final PortAttributeRef newPortAttributeRef(final Attribute<PortRange> attribute) {
+        return new PortAttributeRef() {
+            @Override
+            public int get() {
+                String portName = attribute.getName() + ".port";
+                Integer port = (Integer) attributeMap.get(portName);
+                if (port == null) {
+                    Location location = entity.location.get();
+                    PortRange portRange = getAttribute(attribute);
+                    PortSupplier portSupplier = (PortSupplier) location;
+                    port = portSupplier.obtainPort(portRange);
+                    if (port == -1) {
+                        throw new RuntimeException();
+                    }
+                    attributeMap.put(portName, port);
+                }
+
+                return port;
+            }
+
+            @Override
+            public String getName() {
+                return attribute.getName();
+            }
+
+            @Override
+            public String toString(){
+                return Integer.toString(get());
+            }
+        };
+    }
+
+    public final <E> BasicAttributeRef<E> newBasicAttributeRef(final Attribute<E> attribute) {
+        notNull(attribute, "attribute");
+        return new BasicAttributeRefImpl<E>(attribute);
+    }
+
 
     private <E> boolean noChange(Object oldValue, E newValue) {
         if (oldValue == newValue) return true;
@@ -192,7 +228,7 @@ public final class AttributeMap {
 
         @Override
         public boolean isNull() {
-            return get()==null;
+            return get() == null;
         }
 
         @Override

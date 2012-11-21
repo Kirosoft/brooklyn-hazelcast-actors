@@ -1,6 +1,7 @@
 package io.brooklyn;
 
 
+import brooklyn.location.basic.LocationRegistry;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.attributes.Attribute;
@@ -47,4 +48,6 @@ public interface ManagementContext {
     Set<ActorRef> getFromNameSpace(String nameSpace);
 
     SoftwareProcessDriver newDriver(SoftwareProcess entity);
+
+    LocationRegistry getLocationRegistry();
 }

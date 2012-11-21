@@ -1,17 +1,14 @@
 package io.brooklyn.util;
 
-
+import brooklyn.location.basic.SshMachineLocation;
 import com.google.common.io.Files;
-import io.brooklyn.locations.SshMachineLocation;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class BashScriptRunner {
 
@@ -44,43 +41,22 @@ public class BashScriptRunner {
 
         try {
             File script = buildFinalScript(file);
-            sshMachineLocation.runScriptFunction(script.getAbsolutePath(), function);
+            String remotePath = "/tmp/" + UUID.randomUUID().toString().replace("-", "") + ".sh";
+            System.out.println("Running script:"+remotePath);
+            sshMachineLocation.copyTo(script.getAbsoluteFile(), remotePath);
+            sshMachineLocation.run("chmod +x " + remotePath);
 
-            int exitCode = 0;//process.waitFor();
-            if (exitCode != 0) {
-                System.out.println("exited with " + exitCode);
+            String commandString;
+            if (function != null) {
+                commandString = String.format(". %s && %s", remotePath, function);
+            } else {
+                commandString = remotePath;
             }
-            return exitCode;
+
+            return sshMachineLocation.run(commandString);
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
-        }
-    }
-
-    private class LoggerThread extends Thread {
-        InputStream in;
-        private final boolean error;
-
-        private LoggerThread(InputStream in, boolean error) {
-            this.in = in;
-            this.error = error;
-        }
-
-        public void run() {
-            try {
-                BufferedReader is = new BufferedReader(new InputStreamReader(in));
-                String line;
-                while ((line = is.readLine()) != null) {
-                    if (error) {
-                        System.out.println("err " + line);
-                    } else {
-                        System.out.println("    " + line);
-
-                    }
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
         }
     }
 

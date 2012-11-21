@@ -1,5 +1,7 @@
 package io.brooklyn.example;
 
+import brooklyn.config.BrooklynProperties;
+import brooklyn.location.basic.SshMachineLocation;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.impl.ActorService;
@@ -13,29 +15,12 @@ import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.entity.Start;
 import io.brooklyn.entity.application.ApplicationConfig;
-import io.brooklyn.locations.SshMachineLocation;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.net.Inet4Address;
+import java.net.InetAddress;
 import java.util.Map;
-import java.util.Properties;
 
 public class Main {
-
-    private static String privateKeyFile;
-
-    static {
-        Properties properties = new Properties();
-        File brooklynProperties = new File(System.getProperty("user.home"), ".brooklyn/brooklyn.properties");
-        try {
-            properties.load(new FileInputStream(brooklynProperties));
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-
-        privateKeyFile = (String) properties.get("brooklyn.jclouds.private-key-file");
-    }
 
     public static void main(String[] args) throws Exception {
         Config config = new Config();
@@ -57,10 +42,17 @@ public class Main {
         //Echoer echor = managementContext.newActiveObject(Echoer.class);
         //echor.echo("Echo this!");
 
+        BrooklynProperties brooklynProperties = BrooklynProperties.Factory.newDefault();
+
+
         //todo:
-        SshMachineLocation location = new SshMachineLocation("localhost");
-        location.setUserName("alarmnummer");
-        location.setPrivateKey(privateKeyFile);
+        Map props = MutableMap.map(
+                "user",brooklynProperties.get("user.name"),
+                "privateKeyFile",brooklynProperties.get("brooklyn.jclouds.private-key-file"),
+                "address", InetAddress.getByName("127.0.0.1"));
+        SshMachineLocation location = new SshMachineLocation(props);
+        //location.setUserName((String) );
+        //location.setPrivateKey((String) brooklynProperties.get("brooklyn.jclouds.private-key-file"));
 
         ApplicationConfig applicationConfig = new ApplicationConfig(ExampleWebApplication.class);
         ActorRef application = managementContext.newEntity(applicationConfig);

@@ -1,7 +1,7 @@
 package io.brooklyn.entity.web;
 
+import brooklyn.location.basic.SshMachineLocation;
 import com.google.common.io.Files;
-import io.brooklyn.locations.SshMachineLocation;
 import io.brooklyn.util.BashScriptRunner;
 
 import java.io.File;
@@ -86,7 +86,7 @@ public class TomcatSshDriver implements TomcatDriver {
     @Override
     public void launch() {
         buildBashScriptRunner().runWithoutFailure("launch");
-        tomcat.jmxConnection.init(sshLocation.getHostName(), tomcat.jmxPort.get());
+        tomcat.jmxConnection.init(sshLocation.getAddress().getHostName(), tomcat.jmxPort.get());
     }
 
     @Override

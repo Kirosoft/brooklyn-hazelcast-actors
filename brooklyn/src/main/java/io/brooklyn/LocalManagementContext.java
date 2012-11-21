@@ -1,5 +1,8 @@
 package io.brooklyn;
 
+import brooklyn.location.Location;
+import brooklyn.location.basic.LocationRegistry;
+import brooklyn.location.basic.SshMachineLocation;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
@@ -14,8 +17,6 @@ import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
-import io.brooklyn.locations.Location;
-import io.brooklyn.locations.SshMachineLocation;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
@@ -42,6 +43,7 @@ public class LocalManagementContext implements ManagementContext {
     private ExecutorService localExecutor;
     private ActorRuntime actorRuntime;
     private IMap<String, Set<ActorRef>> namespaceSubscribersMap;
+    private LocationRegistry locationRegistry;
 
     public void init(HazelcastInstance hzInstance, ActorRuntime actorRuntime) {
         namespaceMap = hzInstance.getMap("namespace");
@@ -49,6 +51,12 @@ public class LocalManagementContext implements ManagementContext {
         distributedExecutorService = hzInstance.getExecutorService("executor");
         localExecutor = Executors.newFixedThreadPool(10);
         this.actorRuntime = actorRuntime;
+        this.locationRegistry = new LocationRegistry();
+    }
+
+    @Override
+    public LocationRegistry getLocationRegistry() {
+        return locationRegistry;
     }
 
     @Override

@@ -6,7 +6,6 @@ import io.brooklyn.entity.Start;
 import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.web.WebCluster;
 import io.brooklyn.entity.web.WebClusterConfig;
-import io.brooklyn.locations.SshMachineLocation;
 
 public class ExampleWebApplication extends Application {
 
@@ -18,6 +17,5 @@ public class ExampleWebApplication extends Application {
         web.set(newEntity(new WebClusterConfig()));
         send(web, new Start(location));
         send(web, new WebCluster.ScaleTo(1));
-        System.out.println("ExampleWebApplication:Started");
     }
 }

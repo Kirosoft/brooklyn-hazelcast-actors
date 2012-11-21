@@ -3,6 +3,7 @@ package io.brooklyn.entity.web;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
+import io.brooklyn.attributes.PortAttributeRef;
 import io.brooklyn.entity.Start;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessStatus;
@@ -31,9 +32,10 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
     //a map (backedup by hazelcast). This map can be accessed directly either using strings or attributes.
     //So these references are here to demonstrate an alternative way of accessing attributes.
-    public final IntAttributeRef httPort = newIntAttributeRef(TomcatConfig.HTTP_PORT);
-    public final IntAttributeRef shutdownPort = newIntAttributeRef(TomcatConfig.SHUTDOWN_PORT);
-    public final IntAttributeRef jmxPort = newIntAttributeRef(TomcatConfig.JMX_PORT);
+    public final PortAttributeRef httPort = newPortAttributeRef(TomcatConfig.HTTP_PORT);
+    public final PortAttributeRef shutdownPort = newPortAttributeRef(TomcatConfig.SHUTDOWN_PORT);
+    public final PortAttributeRef jmxPort = newPortAttributeRef(TomcatConfig.JMX_PORT);
+
     public final LongAttributeRef usedHeap = newLongAttributeRef(TomcatConfig.USED_HEAP);
     public final LongAttributeRef maxHeap = newLongAttributeRef(TomcatConfig.MAX_HEAP);
     public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
@@ -55,7 +57,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public void receive(Undeployment undeployment) {
-        System.out.println("Undeploy");
+        System.out.println(self()+":Undeploy");
         getDriver().undeploy();
     }
 
@@ -66,7 +68,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public void receive(Start start) {
-        System.out.println("Tomcat:Start");
+        System.out.println(self()+":Tomcat:Start");
 
         location.set(start.location);
         System.out.println("Tomcat:start location set");
@@ -74,24 +76,19 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         try {
             state.set(SoftwareProcessStatus.STARTING);
             TomcatDriver driver = getDriver();
-            System.out.println("Tomcat.Start installing");
             driver.install();
-
-            System.out.println("Tomcat.Start customizing");
             driver.customize();
-
-            System.out.println("Tomcat.Start launching");
             driver.launch();
         } catch (Exception e) {
             e.printStackTrace();
             state.set(SoftwareProcessStatus.FAILURE);
         }
 
-        System.out.println("Tomcat:Start completed");
+        System.out.println(self()+":Tomcat:Start completed");
     }
 
     public void receive(Stop stop) {
-        System.out.println("StopTomcat");
+        System.out.println(self()+":Tomcat:Stop");
         try {
             state.set(SoftwareProcessStatus.STOPPING);
             getDriver().stop();
@@ -100,6 +97,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             e.printStackTrace();
             state.set(SoftwareProcessStatus.FAILURE);
         }
+        System.out.println(self()+":Tomcat:Stop completed");
     }
 
     public void receive(TomcatFailure failure) {

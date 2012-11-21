@@ -1,5 +1,7 @@
 package io.brooklyn.entity;
 
+import brooklyn.location.Location;
+import brooklyn.location.PortRange;
 import com.hazelcast.actors.actors.DispatchingActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
@@ -11,6 +13,7 @@ import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
+import io.brooklyn.attributes.PortAttributeRef;
 
 import java.io.Serializable;
 
@@ -30,6 +33,8 @@ public abstract class Entity extends DispatchingActor {
     private ManagementContext managementContext;
 
     private AttributeMap attributeMap = new AttributeMap(this);
+
+    public final BasicAttributeRef<Location> location = newBasicAttributeRef("location");
 
     @Override
     public void activate() throws Exception {
@@ -85,6 +90,10 @@ public abstract class Entity extends DispatchingActor {
         return attributeMap.newIntAttribute(attribute);
     }
 
+    public final PortAttributeRef newPortAttributeRef(Attribute<PortRange> attribute) {
+        return attributeMap.newPortAttributeRef(attribute);
+    }
+
     public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
         return attributeMap.newIntAttribute(new Attribute<>(name, defaultValue));
     }
@@ -105,8 +114,12 @@ public abstract class Entity extends DispatchingActor {
         getActorRuntime().repeatingNotification(self(), msg, delayMs);
     }
 
-    public final void subscribeToAttribute(BasicAttributeRef<ActorRef> listener, ActorRef target, Attribute attribute) {
-        getManagementContext().subscribeToAttribute(listener.get(), target, attribute);
+    public final void subscribeToAttribute(BasicAttributeRef<ActorRef> subscriber, ActorRef target, Attribute attribute) {
+        getManagementContext().subscribeToAttribute(subscriber.get(), target, attribute);
+    }
+
+    public final void subscribeToAttribute(ActorRef subscriber, ActorRef target, Attribute attribute) {
+        getManagementContext().subscribeToAttribute(subscriber, target, attribute);
     }
 
     public static class Subscription implements Serializable {
