@@ -9,7 +9,10 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.PlatformComponent;
 
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -44,14 +47,14 @@ public final class AttributeMap {
 
         attributeMap.put(attribute.getName(), newValue);
 
-        List<ActorRef> listeners = (List<ActorRef>) attributeMap.get(getListenerKey(attribute.getName()));
-        if (listeners == null) {
+        List<ActorRef> subscribers = (List<ActorRef>) attributeMap.get(getSubscriberKey(attribute.getName()));
+        if (subscribers == null) {
             return;
         }
 
-        for (ActorRef listener : listeners) {
+        for (ActorRef subscriber : subscribers) {
             SensorEvent event = new SensorEvent(entity.self(), attribute.getName(), oldValue, newValue);
-            entity.getActorRuntime().send(entity.self(), listener, event);
+            entity.getActorRuntime().send(entity.self(), subscriber, event);
         }
     }
 
@@ -86,7 +89,10 @@ public final class AttributeMap {
                 String portName = attribute.getName() + ".port";
                 Integer port = (Integer) attributeMap.get(portName);
                 if (port == null) {
-                    Location location = entity.location.get();
+                    if ((!(entity instanceof PlatformComponent))) {
+                        throw new IllegalStateException("Only PlatformComponent can have PortRange attributes");
+                    }
+                    Location location = ((PlatformComponent) entity).location.get();
                     PortRange portRange = getAttribute(attribute);
                     PortSupplier portSupplier = (PortSupplier) location;
                     port = portSupplier.obtainPort(portRange);
@@ -105,7 +111,7 @@ public final class AttributeMap {
             }
 
             @Override
-            public String toString(){
+            public String toString() {
                 return Integer.toString(get());
             }
         };
@@ -126,13 +132,13 @@ public final class AttributeMap {
         notNull(attributeName, "attributeName");
         notNull(subscriber, "subscriber");
 
-        String key = getListenerKey(attributeName);
-        List<ActorRef> listeners = (List<ActorRef>) attributeMap.get(key);
-        if (listeners == null) {
-            listeners = new LinkedList<ActorRef>();
+        String key = getSubscriberKey(attributeName);
+        List<ActorRef> subscribers = (List<ActorRef>) attributeMap.get(key);
+        if (subscribers == null) {
+            subscribers = new LinkedList<>();
         }
-        listeners.add(subscriber);
-        attributeMap.put(key, listeners);
+        subscribers.add(subscriber);
+        attributeMap.put(key, subscribers);
         Object value = attributeMap.get(attributeName);
         entity.getActorRuntime().send(
                 entity.self(),
@@ -140,8 +146,8 @@ public final class AttributeMap {
                 new SensorEvent(entity.self(), attributeName, value, value));
     }
 
-    private String getListenerKey(String attributeName) {
-        return entity.self() + "." + attributeName + ".listeners";
+    private String getSubscriberKey(String attributeName) {
+        return entity.self() + "." + attributeName + ".subscribers";
     }
 
     public IntAttributeRef newIntAttribute(final Attribute<Integer> attribute) {
@@ -244,6 +250,17 @@ public final class AttributeMap {
         return new ListAttributeRef<E>() {
 
             @Override
+            public Iterator<E> iterator() {
+                List<E> result = new LinkedList();
+                String key = getKey();
+                List<E> list = (List<E>) attributeMap.get(key);
+                if (list != null) {
+                    result.addAll(list);
+                }
+                return result.iterator();
+            }
+
+            @Override
             public E removeFirst() {
                 String key = getKey();
                 List<E> list = (List<E>) attributeMap.get(key);
@@ -299,14 +316,16 @@ public final class AttributeMap {
             }
 
             @Override
-            public void remove(E item) {
+            public boolean remove(E item) {
                 String key = getKey();
                 List<E> list = (List<E>) attributeMap.get(key);
                 if (list == null) {
-                    return;
+                    return false;
                 }
-                list.remove(item);
-                attributeMap.put(key, list);
+                boolean change = list.remove(item);
+                if (change)
+                    attributeMap.put(key, list);
+                return change;
             }
         };
     }

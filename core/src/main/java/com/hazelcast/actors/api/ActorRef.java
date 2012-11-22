@@ -42,9 +42,6 @@ public final class ActorRef implements Serializable, PartitionAware<Integer> {
 
     @Override
     public String toString() {
-        return "ActorRef{" +
-                "id='" + id + '\'' +
-                ", partitionId=" + partitionId +
-                '}';
+        return id;
     }
 }

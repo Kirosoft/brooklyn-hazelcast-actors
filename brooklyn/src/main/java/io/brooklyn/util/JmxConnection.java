@@ -23,8 +23,22 @@ public class JmxConnection {
 
     private String url;
     private MBeanServerConnection connection;
+    private int attempt;
+    private int attemptCount = 20;
 
     public JmxConnection() {
+    }
+
+    public boolean connect() throws TooManyRetriesException {
+        if(isConnected()){
+            return true;
+        }
+
+        attempt++;
+        if(attempt>attemptCount){
+            throw new TooManyRetriesException();
+        }
+        return false;
     }
 
     public boolean isConnected() {
@@ -77,9 +91,10 @@ public class JmxConnection {
                 JMXConnector connector = JMXConnectorFactory.connect(serviceUrl, env);
                 connection = connector.getMBeanServerConnection();
             } catch (IOException e) {
-                e.printStackTrace();
+               // e.printStackTrace();
             }
         }
         return connection;
     }
+
 }

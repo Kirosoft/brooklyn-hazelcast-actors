@@ -1,21 +1,39 @@
 package io.brooklyn.example;
 
+import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.entity.Start;
 import io.brooklyn.entity.application.Application;
+import io.brooklyn.entity.policies.ReplaceWebServerOnFirePolicy;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.web.Tomcat;
 import io.brooklyn.entity.web.WebCluster;
 import io.brooklyn.entity.web.WebClusterConfig;
 
 public class ExampleWebApplication extends Application {
 
-    private final BasicAttributeRef<ActorRef> web = newBasicAttributeRef("web");
+    private final BasicAttributeRef<ActorRef> webCluster = newBasicAttributeRef("webCluster");
+    private final BasicAttributeRef<ActorRef> policy = newBasicAttributeRef("policy");
+
 
     public void receive(Start msg) {
-        System.out.println("ExampleWebApplication:Start");
+        System.out.println(self() + ":ExampleWebApplication:Start");
+
         location.set(msg.location);
-        web.set(newEntity(new WebClusterConfig()));
-        send(web, new Start(location));
-        send(web, new WebCluster.ScaleTo(1));
+
+        webCluster.set(newEntity(new WebClusterConfig()));
+
+        //create the policy and configures it with the webCluster.
+        policy.set(newEntity(new ReplaceWebServerOnFirePolicy.Config().cluster(webCluster)));
+
+        ActorRef echoer = getActorRuntime().newActor(EchoActor.class);
+
+        //register the policy with the webCluster. It will be notified when a state change happens in the webservers of the cluster.
+        send(webCluster, new WebCluster.WebServerPolicyRegistration(policy, SoftwareProcess.STATE));
+        send(webCluster, new WebCluster.WebServerPolicyRegistration(echoer, Tomcat.USED_HEAP));
+
+        send(webCluster, new Start(location));
+        send(webCluster, new WebCluster.ScaleTo(1));
     }
 }

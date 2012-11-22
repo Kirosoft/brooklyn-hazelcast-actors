@@ -3,6 +3,7 @@ package io.brooklyn;
 import brooklyn.location.Location;
 import brooklyn.location.basic.LocationRegistry;
 import brooklyn.location.basic.SshMachineLocation;
+import com.google.common.base.Throwables;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
@@ -118,11 +119,11 @@ public class LocalManagementContext implements ManagementContext {
         namespaceMap.lock(nameSpace);
         try {
             Set<ActorRef> refs = namespaceMap.get(nameSpace);
-            Set<ActorRef> result = new HashSet<ActorRef>();
+            Set<ActorRef> result = new HashSet<>();
             if (refs != null) {
                 result.addAll(refs);
             }
-            return refs;
+            return result;
         } finally {
             namespaceMap.unlock(nameSpace);
         }
@@ -157,7 +158,7 @@ public class LocalManagementContext implements ManagementContext {
         try {
             Set<ActorRef> refs = namespaceMap.get(nameSpace);
             if (refs == null) {
-                refs = new HashSet<ActorRef>();
+                refs = new HashSet<>();
             }
 
             //if we are already registered, we are finished.
@@ -207,22 +208,52 @@ public class LocalManagementContext implements ManagementContext {
 
 
     public SoftwareProcessDriver newDriver(SoftwareProcess entity) {
-        notNull(entity, "entity");
-
-        //todo: It is unclear why the compiler wants this location cast here.
-        Location location = (Location) entity.location.get();
-        Class<? extends SoftwareProcessDriver> driver = entity.getDriverClass();
-
-        try {
-            if (location instanceof SshMachineLocation) {
-                Constructor<? extends SoftwareProcessDriver> driverConstructor = driver.getConstructor(
-                        entity.getClass(), SshMachineLocation.class);
-                return driverConstructor.newInstance(entity, (SshMachineLocation) location);
-            } else {
-                throw new RuntimeException("No driver found for Entity:" + entity + " and location:" + location);
+        Class<SoftwareProcessDriver> driverInterface = entity.getDriverClass();
+        Location location = entity.location.get();
+        Class<SoftwareProcessDriver> driverClass;
+        if (driverInterface.isInterface()) {
+            String driverClassName = inferClassName(driverInterface, entity.location.get());
+            try {
+                driverClass = (Class<SoftwareProcessDriver>) entity.getClass().getClassLoader().loadClass(driverClassName);
+            } catch (ClassNotFoundException e) {
+                throw Throwables.propagate(e);
             }
-        } catch (NoSuchMethodException | InvocationTargetException | InstantiationException | IllegalAccessException e) {
-            throw new RuntimeException(e);
+        } else {
+            driverClass = driverInterface;
         }
+
+        Constructor<SoftwareProcessDriver> constructor = getConstructor(driverClass);
+        try {
+            constructor.setAccessible(true);
+            return constructor.newInstance(entity, location);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
+    private String inferClassName(Class<? extends SoftwareProcessDriver> driverInterface, Location location) {
+        String driverInterfaceName = driverInterface.getName();
+
+        if (location instanceof SshMachineLocation) {
+            if (!driverInterfaceName.endsWith("Driver")) {
+                throw new RuntimeException(String.format("Driver name [%s] doesn't end with 'Driver'", driverInterfaceName));
+            }
+
+            return driverInterfaceName.substring(0, driverInterfaceName.length() - "Driver".length()) + "SshDriver";
+        } else {
+            //TODO: Improve
+            throw new RuntimeException("Currently only SshMachineLocation is supported, but location=" + location + " for driver +" + driverInterface);
+        }
+    }
+
+    private Constructor<SoftwareProcessDriver> getConstructor(Class<SoftwareProcessDriver> driverClass) {
+        for (Constructor<?> constructor : driverClass.getConstructors()) {
+            if (constructor.getParameterTypes().length == 2) {
+                return (Constructor<io.brooklyn.entity.softwareprocess.SoftwareProcessDriver>) constructor;
+            }
+        }
+
+        //TODO:
+        throw new RuntimeException(String.format("Class [%s] has no constructor with 2 arguments", driverClass.getName()));
     }
 }

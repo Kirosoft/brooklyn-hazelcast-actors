@@ -20,9 +20,6 @@ public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
     public static final Attribute<PortRange> JMX_PORT = new Attribute<>("jmxPort", PortRanges.fromString("10000+"));
     public static final Attribute<String> VERSION = new Attribute<>("version", "7.0.32");
 
-    public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
-    public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
-
     public TomcatConfig() {
         super(Tomcat.class);
     }

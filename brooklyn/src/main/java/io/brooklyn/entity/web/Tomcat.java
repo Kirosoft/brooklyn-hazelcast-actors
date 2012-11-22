@@ -1,13 +1,14 @@
 package io.brooklyn.entity.web;
 
+import brooklyn.entity.basic.Lifecycle;
+import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
 import io.brooklyn.attributes.PortAttributeRef;
 import io.brooklyn.entity.Start;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
-import io.brooklyn.entity.softwareprocess.SoftwareProcessStatus;
 import io.brooklyn.util.JmxConnection;
+import io.brooklyn.util.TooManyRetriesException;
 
 import javax.management.openmbean.CompositeData;
 import java.io.Serializable;
@@ -29,6 +30,9 @@ import java.io.Serializable;
  */
 public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
+    public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
+    public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
+
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
     //a map (backedup by hazelcast). This map can be accessed directly either using strings or attributes.
     //So these references are here to demonstrate an alternative way of accessing attributes.
@@ -36,15 +40,15 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     public final PortAttributeRef shutdownPort = newPortAttributeRef(TomcatConfig.SHUTDOWN_PORT);
     public final PortAttributeRef jmxPort = newPortAttributeRef(TomcatConfig.JMX_PORT);
 
-    public final LongAttributeRef usedHeap = newLongAttributeRef(TomcatConfig.USED_HEAP);
-    public final LongAttributeRef maxHeap = newLongAttributeRef(TomcatConfig.MAX_HEAP);
+    public final LongAttributeRef usedHeap = newLongAttributeRef(USED_HEAP);
+    public final LongAttributeRef maxHeap = newLongAttributeRef(MAX_HEAP);
     public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
 
     public final JmxConnection jmxConnection = new JmxConnection();
 
     @Override
-    public Class<TomcatSshDriver> getDriverClass() {
-        return TomcatSshDriver.class;
+    public Class<TomcatDriver> getDriverClass() {
+        return TomcatDriver.class;
     }
 
     @Override
@@ -57,7 +61,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public void receive(Undeployment undeployment) {
-        System.out.println(self()+":Undeploy");
+        System.out.println(self() + ":Undeploy");
         getDriver().undeploy();
     }
 
@@ -68,36 +72,36 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public void receive(Start start) {
-        System.out.println(self()+":Tomcat:Start");
+        System.out.println(self() + ":Tomcat:Start");
 
         location.set(start.location);
         System.out.println("Tomcat:start location set");
 
         try {
-            state.set(SoftwareProcessStatus.STARTING);
+            state.set(Lifecycle.STARTING);
             TomcatDriver driver = getDriver();
             driver.install();
             driver.customize();
             driver.launch();
         } catch (Exception e) {
             e.printStackTrace();
-            state.set(SoftwareProcessStatus.FAILURE);
+            state.set(Lifecycle.ON_FIRE);
         }
 
-        System.out.println(self()+":Tomcat:Start completed");
+        System.out.println(self() + ":Tomcat:Start completed");
     }
 
     public void receive(Stop stop) {
-        System.out.println(self()+":Tomcat:Stop");
+        System.out.println(self() + ":Tomcat:Stop");
         try {
-            state.set(SoftwareProcessStatus.STOPPING);
+            state.set(Lifecycle.STOPPING);
             getDriver().stop();
-            state.set(SoftwareProcessStatus.STOPPED);
+            state.set(Lifecycle.STOPPED);
         } catch (Exception e) {
             e.printStackTrace();
-            state.set(SoftwareProcessStatus.FAILURE);
+            state.set(Lifecycle.ON_FIRE);
         }
-        System.out.println(self()+":Tomcat:Stop completed");
+        System.out.println(self() + ":Tomcat:Stop completed");
     }
 
     public void receive(TomcatFailure failure) {
@@ -105,16 +109,24 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     public void receive(JmxUpdate update) {
-        if (state.get().equals(SoftwareProcessStatus.UNSTARTED)) {
+        System.out.println(self() + ":Tomcat:JmxUpdate");
+
+
+        Lifecycle lifecycle = state.get();
+        if (!(Lifecycle.STARTING.equals(lifecycle) || Lifecycle.RUNNING.equals(lifecycle))) {
             return;
         }
 
-        if (!jmxConnection.isConnected()) {
-            state.set(SoftwareProcessStatus.UNREACHABLE);
+        try {
+            if (!jmxConnection.connect()) {
+                return;
+            }
+        } catch (TooManyRetriesException e) {
+            state.set(Lifecycle.ON_FIRE);
             return;
         }
 
-        state.set(SoftwareProcessStatus.RUNNING);
+        state.set(Lifecycle.RUNNING);
 
         CompositeData heapData = (CompositeData) jmxConnection.getAttribute("java.lang:type=Memory", "HeapMemoryUsage");
         if (heapData == null) {

@@ -34,8 +34,6 @@ public abstract class Entity extends DispatchingActor {
 
     private AttributeMap attributeMap = new AttributeMap(this);
 
-    public final BasicAttributeRef<Location> location = newBasicAttributeRef("location");
-
     @Override
     public void activate() throws Exception {
         super.activate();
@@ -44,6 +42,10 @@ public abstract class Entity extends DispatchingActor {
 
         EntityConfig config = (EntityConfig) recipe.getProperties().get("config");
         attributeMap.init(getHzInstance(), getRecipe(), config);
+    }
+
+    public final AttributeMap getAttributeMap() {
+        return attributeMap;
     }
 
     public final ActorRef newEntity(EntityConfig config) {
@@ -90,11 +92,7 @@ public abstract class Entity extends DispatchingActor {
         return attributeMap.newIntAttribute(attribute);
     }
 
-    public final PortAttributeRef newPortAttributeRef(Attribute<PortRange> attribute) {
-        return attributeMap.newPortAttributeRef(attribute);
-    }
-
-    public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
+     public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
         return attributeMap.newIntAttribute(new Attribute<>(name, defaultValue));
     }
 

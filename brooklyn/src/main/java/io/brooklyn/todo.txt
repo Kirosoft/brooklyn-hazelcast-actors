@@ -30,6 +30,8 @@ So we need to store the attributes on the partition key.
 
 DONE
 
+- driver is now selected based on location inference.
+
 - make use of the PortRange
 
 - the Location is now responsible for determining the free port based on the port range.

@@ -1,23 +1,23 @@
 package io.brooklyn.entity.softwareprocess;
 
-import brooklyn.location.Location;
+import brooklyn.entity.basic.Lifecycle;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.entity.Entity;
+import io.brooklyn.entity.PlatformComponent;
 
 import java.io.Serializable;
 
-public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends Entity {
+public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends PlatformComponent {
 
-    public static final Attribute<SoftwareProcessStatus> STATE =
-            new Attribute<>("state", SoftwareProcessStatus.UNSTARTED);
+    public static final Attribute<Lifecycle> STATE = new Attribute<>("state");
 
     public final BasicAttributeRef<String> runDir = newBasicAttributeRef("runDir");
-    public final BasicAttributeRef<SoftwareProcessStatus> state = newBasicAttributeRef(STATE);
+    public final BasicAttributeRef<Lifecycle> state = newBasicAttributeRef(STATE);
 
     private D softwareProcessDriver;
 
-    public abstract Class<? extends SoftwareProcessDriver> getDriverClass();
+    public abstract Class<D> getDriverClass();
 
     public D getDriver() {
         if (softwareProcessDriver == null) {
