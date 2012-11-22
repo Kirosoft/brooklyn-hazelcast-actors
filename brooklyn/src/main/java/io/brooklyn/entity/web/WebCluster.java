@@ -7,14 +7,15 @@ import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
 import io.brooklyn.entity.PlatformComponent;
 import io.brooklyn.entity.Start;
-import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.Stop;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
 public class WebCluster extends PlatformComponent {
 
     private final ListAttributeRef<ActorRef> children = newListAttributeRef("children", ActorRef.class);
-    private final ListAttributeRef<WebServerPolicyRegistration> policyRegistrations = newListAttributeRef("policyRegistrations", WebServerPolicyRegistration.class);
+    private final ListAttributeRef<WebServerPolicyRegistration> policyRegistrations =
+            newListAttributeRef("policyRegistrations", WebServerPolicyRegistration.class);
 
     @Override
     public void activate() throws Exception {
@@ -53,7 +54,7 @@ public class WebCluster extends PlatformComponent {
             //we need to remove machines.
             for (int k = 0; k < -delta; k++) {
                 ActorRef webServer = children.removeFirst();
-                send(webServer, new SoftwareProcess.Stop());
+                send(webServer, new Stop());
             }
         }
 
@@ -67,7 +68,7 @@ public class WebCluster extends PlatformComponent {
         if (!found) {
             return;
         }
-        send(replaceWebServer.webServer, new SoftwareProcess.Stop());
+        send(replaceWebServer.webServer, new Stop());
         receive(new ScaleTo(1));
     }
 

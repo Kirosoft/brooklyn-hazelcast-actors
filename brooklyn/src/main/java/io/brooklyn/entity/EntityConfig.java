@@ -23,7 +23,7 @@ import static com.hazelcast.actors.utils.Util.notNull;
  * is started.
  *
  * EntityConfig is mutable and not threadsafe. In most cases they will be created (written) before they are used (read).
- * So this should not be an issue. Using an immutable approach would also be an issue.
+ * So this should not be an issue. Using an immutable approach would also be a solution.
  *
  * @param <E>
  */

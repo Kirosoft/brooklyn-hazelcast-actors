@@ -1,6 +1,7 @@
 package io.brooklyn.entity.softwareprocess;
 
 import brooklyn.entity.basic.Lifecycle;
+import io.brooklyn.AbstractMessage;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.entity.Entity;
@@ -26,6 +27,4 @@ public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends P
         return softwareProcessDriver;
     }
 
-    public static class Stop implements Serializable {
-    }
 }

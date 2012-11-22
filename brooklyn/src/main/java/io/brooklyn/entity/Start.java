@@ -1,11 +1,10 @@
 package io.brooklyn.entity;
 
 import brooklyn.location.Location;
+import io.brooklyn.AbstractMessage;
 import io.brooklyn.attributes.BasicAttributeRef;
 
-import java.io.Serializable;
-
-public class Start implements Serializable {
+public class Start extends AbstractMessage {
     public final Location location;
 
     public Start(Location location) {

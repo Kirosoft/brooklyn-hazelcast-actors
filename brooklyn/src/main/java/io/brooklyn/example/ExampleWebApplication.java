@@ -31,7 +31,9 @@ public class ExampleWebApplication extends Application {
 
         //register the policy with the webCluster. It will be notified when a state change happens in the webservers of the cluster.
         send(webCluster, new WebCluster.WebServerPolicyRegistration(policy, SoftwareProcess.STATE));
-        send(webCluster, new WebCluster.WebServerPolicyRegistration(echoer, Tomcat.USED_HEAP));
+
+        //lets print the result that are published on the average used heap
+        send(webCluster, new WebCluster.WebServerPolicyRegistration(echoer, Tomcat.AVERAGE_USED_HEAP));
 
         send(webCluster, new Start(location));
         send(webCluster, new WebCluster.ScaleTo(1));

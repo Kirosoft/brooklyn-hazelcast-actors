@@ -1,17 +1,20 @@
 package io.brooklyn.entity.web;
 
 import brooklyn.entity.basic.Lifecycle;
+import com.hazelcast.actors.api.ActorRef;
+import io.brooklyn.AbstractMessage;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
 import io.brooklyn.attributes.PortAttributeRef;
 import io.brooklyn.entity.Start;
+import io.brooklyn.entity.Stop;
+import io.brooklyn.entity.enrichers.RollingTimeWindowMeanEnricher;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.util.JmxConnection;
 import io.brooklyn.util.TooManyRetriesException;
 
 import javax.management.openmbean.CompositeData;
-import java.io.Serializable;
 
 /**
  * The current start map tomcat is a blocking operation, meaning: as long as the installation (install/customize/launch)
@@ -31,6 +34,7 @@ import java.io.Serializable;
 public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
     public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
+    public static final Attribute<Double> AVERAGE_USED_HEAP = new Attribute<>("averageUsedHeap", 0d);
     public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
 
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
@@ -67,12 +71,22 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
     public void receive(Deployment deployment) {
         System.out.println("Deploying:" + deployment.url);
-        //todo: would be best to offload the work map the potentially long copy action
+        //todo: would be best to offload the work because potentially long copy action
         getDriver().deploy(deployment.url);
     }
 
     public void receive(Start start) {
         System.out.println(self() + ":Tomcat:Start");
+
+        //TODO: This should be placed in the 'activate'. The problem is that Hazelcast deadlocks in that method.
+        //the average used heap is calculated using an enricher.
+        RollingTimeWindowMeanEnricher.Config config = new RollingTimeWindowMeanEnricher.Config()
+                .targetAttribute(AVERAGE_USED_HEAP)
+                .sourceAttribute(USED_HEAP)
+                .source(self());
+        ActorRef averageUsedHeapEnricher = newEntity(config);
+        //TODO: This method can be deleted as soon as hazelcast doesn't deadlock in activate.
+        send(averageUsedHeapEnricher,start);
 
         location.set(start.location);
         System.out.println("Tomcat:start location set");
@@ -104,13 +118,8 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         System.out.println(self() + ":Tomcat:Stop completed");
     }
 
-    public void receive(TomcatFailure failure) {
-        System.out.println("TomcatFailure at: " + self());
-    }
-
     public void receive(JmxUpdate update) {
-        System.out.println(self() + ":Tomcat:JmxUpdate");
-
+        //System.out.println(self() + ":Tomcat:JmxUpdate");
 
         Lifecycle lifecycle = state.get();
         if (!(Lifecycle.STARTING.equals(lifecycle) || Lifecycle.RUNNING.equals(lifecycle))) {
@@ -138,16 +147,12 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public static class TomcatFailure implements Serializable {
-    }
 
-    public static class JmxUpdate implements Serializable {
-    }
+    public static class JmxUpdate extends AbstractMessage {}
 
-    public static class Undeployment implements Serializable {
-    }
+    public static class Undeployment extends AbstractMessage {}
 
-    public static class Deployment implements Serializable {
+    public static class Deployment extends AbstractMessage {
         public final String url;
 
         public Deployment(String url) {

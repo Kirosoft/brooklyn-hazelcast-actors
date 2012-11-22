@@ -1,11 +1,10 @@
 package io.brooklyn.entity;
 
-import brooklyn.location.Location;
-import brooklyn.location.PortRange;
 import com.hazelcast.actors.actors.DispatchingActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.Injected;
+import io.brooklyn.AbstractMessage;
 import io.brooklyn.ManagementContext;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.AttributeMap;
@@ -13,9 +12,6 @@ import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.IntAttributeRef;
 import io.brooklyn.attributes.ListAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
-import io.brooklyn.attributes.PortAttributeRef;
-
-import java.io.Serializable;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
@@ -43,6 +39,7 @@ public abstract class Entity extends DispatchingActor {
         EntityConfig config = (EntityConfig) recipe.getProperties().get("config");
         attributeMap.init(getHzInstance(), getRecipe(), config);
     }
+
 
     public final AttributeMap getAttributeMap() {
         return attributeMap;
@@ -92,7 +89,7 @@ public abstract class Entity extends DispatchingActor {
         return attributeMap.newIntAttribute(attribute);
     }
 
-     public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
+    public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
         return attributeMap.newIntAttribute(new Attribute<>(name, defaultValue));
     }
 
@@ -108,6 +105,11 @@ public abstract class Entity extends DispatchingActor {
         attributeMap.subscribe(subscription.attributeName, subscription.subscriber);
     }
 
+    public void receive(AttributePublication publication) {
+        System.out.println(publication);
+        attributeMap.setAttribute(publication.attribute, publication.value);
+    }
+
     public final void repeatingSelfNotification(Object msg, int delayMs) {
         getActorRuntime().repeatingNotification(self(), msg, delayMs);
     }
@@ -120,7 +122,29 @@ public abstract class Entity extends DispatchingActor {
         getManagementContext().subscribeToAttribute(subscriber, target, attribute);
     }
 
-    public static class Subscription implements Serializable {
+    public static class AttributePublication<E> extends AbstractMessage {
+        private final Attribute<E> attribute;
+        private final E value;
+
+        public AttributePublication(BasicAttributeRef<Attribute<E>> attributeRef, E value) {
+            this(attributeRef.get(), value);
+        }
+
+        public AttributePublication(Attribute<E> attribute, E value) {
+            this.attribute = attribute;
+            this.value = value;
+        }
+
+        public Attribute<E> getAttribute() {
+            return attribute;
+        }
+
+        public E getValue() {
+            return value;
+        }
+    }
+
+    public static class Subscription extends AbstractMessage {
         private final String attributeName;
         private final ActorRef subscriber;
 

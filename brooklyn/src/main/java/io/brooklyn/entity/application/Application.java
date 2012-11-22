@@ -1,11 +1,8 @@
 package io.brooklyn.entity.application;
 
-import brooklyn.location.Location;
-import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.PlatformComponent;
 import io.brooklyn.entity.Start;
-import io.brooklyn.entity.softwareprocess.SoftwareProcess;
+import io.brooklyn.entity.Stop;
 
 public abstract class Application extends PlatformComponent {
 
@@ -15,7 +12,7 @@ public abstract class Application extends PlatformComponent {
     }
 
     //On start we are going to register ourselves.
-    public void receive(SoftwareProcess.Stop start) {
+    public void receive(Stop start) {
         getManagementContext().unregisterFromNamespace("Application", self());
     }
 }
