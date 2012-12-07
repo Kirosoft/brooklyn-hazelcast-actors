@@ -3,20 +3,17 @@ package com.hazelcast.actors.impl.actorcontainers;
 import com.hazelcast.actors.api.Actor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.core.IMap;
 
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActorContainer<A> {
+public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActorContainer<A, AbstractActorContainer.Dependencies> {
     protected final BlockingQueue mailbox = new ArrayBlockingQueue(100000);
 
     private final Thread thread;
 
-    public DedicatedThreadActorContainer(ActorRecipe<A> recipe, ActorRef actorRef,
-                                         IMap<ActorRef, Set<ActorRef>> monitorMap) {
-        super(recipe, actorRef, monitorMap);
+    public DedicatedThreadActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, Dependencies dependencies) {
+        super(recipe, actorRef, dependencies);
         this.thread = new Thread("actor-thread-" + actorRef.getId()) {
             public void run() {
                 while (true) {
@@ -56,18 +53,18 @@ public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActo
             mailbox.put(new MessageWrapper(message, sender));
         }
     }
-
-    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
-        private IMap<ActorRef, Set<ActorRef>> monitorMap;
+      /*
+    public static class Factory<A extends Actor> implements ActorContainer.Factory<A> {
+        private Dependencies actorContainerDependencies;
 
         @Override
-        public void init(IMap<ActorRef, Set<ActorRef>> monitorMap) {
-            this.monitorMap = monitorMap;
+        public void init(Dependencies actorContainerDependencies) {
+           this.actorContainerDependencies = actorContainerDependencies;
         }
 
         @Override
         public ActorContainer<A> newContainer(ActorRef actorRef, ActorRecipe<A> recipe) {
-            return new DedicatedThreadActorContainer<>(recipe, actorRef, monitorMap);
+            return new DedicatedThreadActorContainer<>(recipe, actorRef, actorContainerDependencies);
         }
-    }
+    }   */
 }

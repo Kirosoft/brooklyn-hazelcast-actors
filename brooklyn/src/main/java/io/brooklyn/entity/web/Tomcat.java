@@ -1,18 +1,18 @@
 package io.brooklyn.entity.web;
 
 import brooklyn.entity.basic.Lifecycle;
-import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.LongAttributeRef;
 import io.brooklyn.attributes.PortAttributeRef;
-import io.brooklyn.entity.Start;
 import io.brooklyn.entity.Stop;
 import io.brooklyn.entity.enrichers.RollingTimeWindowMeanEnricher;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.util.JmxConnection;
 import io.brooklyn.util.TooManyRetriesException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.management.openmbean.CompositeData;
 
@@ -33,12 +33,15 @@ import javax.management.openmbean.CompositeData;
  */
 public class Tomcat extends SoftwareProcess<TomcatDriver> {
 
+    private static final Logger log = LoggerFactory.getLogger(Tomcat.class);
+
+
     public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
     public static final Attribute<Double> AVERAGE_USED_HEAP = new Attribute<>("averageUsedHeap", 0d);
     public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
 
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
-    //a map (backedup by hazelcast). This map can be accessed directly either using strings or attributes.
+    //a map (backed up by hazelcast). This map can be accessed directly either using strings or attributes.
     //So these references are here to demonstrate an alternative way of accessing attributes.
     public final PortAttributeRef httPort = newPortAttributeRef(TomcatConfig.HTTP_PORT);
     public final PortAttributeRef shutdownPort = newPortAttributeRef(TomcatConfig.SHUTDOWN_PORT);
@@ -56,27 +59,30 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     }
 
     @Override
-    public void activate() throws Exception {
-        super.activate();
+    public void onActivation() throws Exception {
+        super.onActivation();
 
-        //the actor will register itself, so that every second it gets a message to update its jmx information
+        //the actor will start itself, so that every second it gets a message to update its jmx information
         //if that is available.
-        repeatingSelfNotification(new JmxUpdate(), 1000);
+        notifySelf(new JmxUpdate(), 1000);
     }
 
     public void receive(Undeployment undeployment) {
-        System.out.println(self() + ":Undeploy");
+        if (log.isDebugEnabled()) log.debug(self() + ":Undeploy");
+
         getDriver().undeploy();
     }
 
     public void receive(Deployment deployment) {
-        System.out.println("Deploying:" + deployment.url);
-        //todo: would be best to offload the work because potentially long copy action
+        if (log.isDebugEnabled()) log.debug("Deploying:" + deployment.url);
+        //todo: would be best to offload the run because potentially long copy action
         getDriver().deploy(deployment.url);
     }
 
     public void receive(Start start) {
-        System.out.println(self() + ":Tomcat:Start");
+        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start");
+
+        super.receive(start);
 
         //TODO: This should be placed in the 'activate'. The problem is that Hazelcast deadlocks in that method.
         //the average used heap is calculated using an enricher.
@@ -84,12 +90,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
                 .targetAttribute(AVERAGE_USED_HEAP)
                 .sourceAttribute(USED_HEAP)
                 .source(self());
-        ActorRef averageUsedHeapEnricher = newEntity(config);
-        //TODO: This method can be deleted as soon as hazelcast doesn't deadlock in activate.
-        send(averageUsedHeapEnricher,start);
+        //the created enricher (which is also an entity) is linked to this process. So if tomcat exits, also the
+        //enricher is going to exit.
+        send(spawnAndLink(config), start);
 
         location.set(start.location);
-        System.out.println("Tomcat:start location set");
 
         try {
             state.set(Lifecycle.STARTING);
@@ -102,11 +107,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             state.set(Lifecycle.ON_FIRE);
         }
 
-        System.out.println(self() + ":Tomcat:Start completed");
+        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start completed");
     }
 
     public void receive(Stop stop) {
-        System.out.println(self() + ":Tomcat:Stop");
+        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Stop");
         try {
             state.set(Lifecycle.STOPPING);
             getDriver().stop();
@@ -115,11 +120,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             e.printStackTrace();
             state.set(Lifecycle.ON_FIRE);
         }
-        System.out.println(self() + ":Tomcat:Stop completed");
+        if (log.isDebugEnabled())log.debug(self() + ":Tomcat:Stop completed");
     }
 
     public void receive(JmxUpdate update) {
-        //System.out.println(self() + ":Tomcat:JmxUpdate");
+        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:JmxUpdate");
 
         Lifecycle lifecycle = state.get();
         if (!(Lifecycle.STARTING.equals(lifecycle) || Lifecycle.RUNNING.equals(lifecycle))) {

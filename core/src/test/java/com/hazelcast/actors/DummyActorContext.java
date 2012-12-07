@@ -6,9 +6,12 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.core.HazelcastInstance;
 
+import java.util.Collections;
+import java.util.Set;
+
 public class DummyActorContext implements ActorContext {
     private final HazelcastInstance hzInstance;
-    private final ActorRef self = new ActorRef("foo", 1);
+    private final ActorRef self = TestUtils.newRandomActorRef();
     private final ActorRecipe recipe;
     private ActorRuntime actorRuntime;
 

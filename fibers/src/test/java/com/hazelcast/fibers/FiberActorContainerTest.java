@@ -6,6 +6,7 @@ import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
 import com.hazelcast.actors.impl.BasicActorFactory;
+import com.hazelcast.actors.fibers.FiberScheduler;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
@@ -22,13 +23,13 @@ import java.util.Set;
 
 import static com.hazelcast.actors.TestUtils.newRandomActorRef;
 
-public class ActorExecutorActorContainerTest {
+public class FiberActorContainerTest {
     private static ActorService.ActorRuntimeProxyImpl actorRuntime;
     private static HazelcastInstance hzInstance;
     private static IMap<ActorRef, Set<ActorRef>> monitorMap;
     private static BasicActorFactory actorFactory;
     private static NodeServiceImpl nodeService;
-    private ActorExecutor executor;
+    private FiberScheduler executor;
 
     @BeforeClass
     public static void beforeClass() {
@@ -53,7 +54,7 @@ public class ActorExecutorActorContainerTest {
 
     @Before
     public void before() {
-        executor = new ActorExecutor();
+        executor = new FiberScheduler();
     }
 
     @Ignore
@@ -61,8 +62,8 @@ public class ActorExecutorActorContainerTest {
     public void test() throws InterruptedException {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionId());
-
-        ActorExecutorActorContainer<TestActor> container = new ActorExecutorActorContainer<>(recipe, actorRef, monitorMap);
+        FiberScheduler fiberScheduler = new FiberScheduler();
+        FiberActorContainer<TestActor> container = new FiberActorContainer<>(recipe, actorRef, monitorMap,fiberScheduler);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
 
         String msg = "foo";

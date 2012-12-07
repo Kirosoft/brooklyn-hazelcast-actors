@@ -1,15 +1,7 @@
 package com.hazelcast.actors.actors;
 
-import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorContext;
-import com.hazelcast.actors.api.ActorContextAware;
-import com.hazelcast.actors.api.ActorLifecycleAware;
-import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.ActorRuntime;
+import com.hazelcast.actors.api.*;
 import com.hazelcast.core.HazelcastInstance;
-
-import javax.naming.directory.BasicAttribute;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
@@ -28,23 +20,40 @@ public abstract class AbstractActor implements Actor,
     }
 
     @Override
-    public void activate() throws Exception {
+    public void onActivation() throws Exception {
         //no-op
     }
 
     @Override
-    public void terminate() throws Exception {
+    public void onExit() throws Exception {
         //no-op
     }
 
     @Override
-    public void reactivate() throws Exception {
+    public void onReactivation() throws Exception {
         //no-op
     }
 
     @Override
-    public void suspend() throws Exception {
+    public void onSuspension() throws Exception {
         //no-op
+    }
+
+    /**
+     * Spawns a new Actor and links it to the current Actor.
+     *
+     * @param actorClass
+     * @return
+     */
+    public final ActorRef spawnAndLink(Class<? extends Actor> actorClass) {
+        notNull(actorClass,"actorClass");
+
+        ActorContext actorContext = getActorContext();
+        ActorRecipe actorRecipe = new ActorRecipe(actorClass,
+                actorContext.self(),
+                actorContext.getRecipe().getPartitionKey(),
+                null);
+        return actorContext.getActorRuntime().newActor(actorRecipe);
     }
 
     public final ActorContext getActorContext() {

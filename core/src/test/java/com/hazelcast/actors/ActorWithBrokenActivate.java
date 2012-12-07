@@ -11,22 +11,22 @@ public class ActorWithBrokenActivate implements ActorLifecycleAware, Actor {
     }
 
     @Override
-    public void activate() throws Exception {
+    public void onActivation() throws Exception {
         throw new SomeException();
     }
 
     @Override
-    public void suspend() throws Exception {
+    public void onSuspension() throws Exception {
         //no-op
     }
 
     @Override
-    public void reactivate() throws Exception {
+    public void onReactivation() throws Exception {
         //no-op
     }
 
     @Override
-    public void terminate() throws Exception {
+    public void onExit() throws Exception {
         //no-op
     }
 }

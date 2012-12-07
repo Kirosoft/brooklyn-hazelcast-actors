@@ -1,6 +1,8 @@
 package io.brooklyn.entity.softwareprocess;
 
 import brooklyn.entity.basic.Lifecycle;
+import brooklyn.location.Location;
+import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
@@ -15,6 +17,7 @@ public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends P
 
     public final BasicAttributeRef<String> runDir = newBasicAttributeRef("runDir");
     public final BasicAttributeRef<Lifecycle> state = newBasicAttributeRef(STATE);
+    public final BasicAttributeRef<ActorRef> machine = newBasicAttributeRef("machine");
 
     private D softwareProcessDriver;
 
@@ -27,4 +30,17 @@ public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends P
         return softwareProcessDriver;
     }
 
+    public void receive(Start start){
+        machine.set(start.machine);
+    }
+
+    public static class Start extends AbstractMessage{
+        public final ActorRef machine;
+        public final Location location;
+
+        public Start(ActorRef machine, Location location) {
+            this.machine = machine;
+            this.location = location;
+        }
+    }
 }

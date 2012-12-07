@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Random;
 
 public class Util {
     public final static String EXCEPTION_SEPARATOR = "------End remote and begin local stracktrace ------";
@@ -40,6 +41,22 @@ public class Util {
         }
     }
 
+    private final static Random random = new Random();
+
+    public static void sleepRandom(int ms) {
+        try {
+            Thread.sleep(random.nextInt(ms));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int notNegative(int value, String name){
+        if(value<0){
+            throw new IllegalArgumentException(String.format("'%s' can't be equal or smaller than 0, value =%s",name,value));
+        }
+        return value;
+    }
 
     public static <E> E notNull(E e, String name) {
         if (e == null) {

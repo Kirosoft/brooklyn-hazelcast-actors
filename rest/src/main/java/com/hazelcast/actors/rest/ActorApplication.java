@@ -51,7 +51,8 @@ public class ActorApplication extends Application {
 
         @Post
         public String doPost() {
-            ActorRef actorRef = new ActorRef(actorId, partitionId);
+            //todo: the partitionKey is lost here
+            ActorRef actorRef = new ActorRef(actorId, null,partitionId);
             actorRuntime.send(actorRef, msg);
             return "actor resource:" + actorId;
         }

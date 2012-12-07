@@ -1,10 +1,8 @@
 package com.hazelcast.actors.impl.actorcontainers;
 
-import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.utils.Util;
+import com.hazelcast.actors.api.*;
 import com.hazelcast.core.IMap;
+import com.hazelcast.spi.impl.NodeServiceImpl;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -13,27 +11,19 @@ import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.hazelcast.actors.utils.Util.notNull;
-
 
 /**
  * The ActorContainer wraps the Actor and stores the mailbox and deals with storing and processing the messages.
  * <p/>
  * Every Actor will have 1 ActorContainer.
  */
-public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractActorContainer<A> {
+public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractActorContainer<A, ForkJoinPoolActorContainer.Dependencies> {
     //todo: can be replaced by a FIeldUpdates and making it volatile.
     private final AtomicBoolean lock = new AtomicBoolean();
     protected final BlockingQueue mailbox = new LinkedBlockingQueue(1000000);
 
-    //todo: the fields below can all be passed as a single reference.
-    private final ForkJoinPool executor;
-
-    private ProcessingForkJoinTask processingForkJoinTask = new ProcessingForkJoinTask();
-
-    public ForkJoinPoolActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, ForkJoinPool executor, IMap<ActorRef, Set<ActorRef>> monitorMap) {
-        super(recipe, actorRef, monitorMap);
-        this.executor = Util.notNull(executor, "executor");
+    public ForkJoinPoolActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, Dependencies dependencies) {
+        super(recipe, actorRef, dependencies);
     }
 
     @Override
@@ -50,7 +40,8 @@ public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractA
             return;
         }
 
-        executor.execute(new ProcessingForkJoinTask());
+        //we need to create a new ProcessingForkJoinTask since they are not te be reused.
+        dependencies.forkJoinPool.execute(new ProcessingForkJoinTask());
     }
 
     private class ProcessingForkJoinTask extends ForkJoinTask {
@@ -103,29 +94,47 @@ public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractA
             }
 
             if (!mailbox.isEmpty()) {
-                executor.execute(new ProcessingForkJoinTask());
+                dependencies.forkJoinPool.execute(new ProcessingForkJoinTask());
             }
             return true;
         }
     }
 
-    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
+    public static class Dependencies extends AbstractActorContainer.Dependencies{
         private final ForkJoinPool forkJoinPool;
-        private IMap<ActorRef, Set<ActorRef>> monitorMap;
 
-
-        public Factory(ForkJoinPool forkJoinPool) {
-            this.forkJoinPool = notNull(forkJoinPool, "forkJoinPool");
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
+                            NodeServiceImpl nodeService, ForkJoinPool forkJoinPool) {
+            super(actorFactory, actorRuntime, monitorMap, nodeService);
+            this.forkJoinPool = forkJoinPool;
         }
+    }
+
+    public static class ForkJoinContainerFactoryFactory implements ActorContainerFactoryFactory{
 
         @Override
-        public void init(IMap<ActorRef, Set<ActorRef>> monitorMap) {
-            this.monitorMap = monitorMap;
+        public ActorContainerFactory newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime,
+                                                IMap monitorMap,
+                                                NodeServiceImpl nodeService) {
+            ForkJoinPool forkJoinPool = new ForkJoinPool();
+
+            ForkJoinPoolActorContainer.Dependencies dependencies = new ForkJoinPoolActorContainer.Dependencies(
+                    actorFactory,actorRuntime,monitorMap,nodeService,forkJoinPool);
+            return new Factory(dependencies);
+        }
+    }
+
+    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
+
+        private final Dependencies dependencies;
+
+        public Factory(Dependencies dependencies) {
+            this.dependencies = dependencies;
         }
 
         @Override
         public ForkJoinPoolActorContainer<A> newContainer(ActorRef actorRef, ActorRecipe<A> recipe) {
-            return new ForkJoinPoolActorContainer<A>(recipe, actorRef, forkJoinPool, monitorMap);
+            return new ForkJoinPoolActorContainer<>(recipe, actorRef, dependencies);
         }
     }
 }

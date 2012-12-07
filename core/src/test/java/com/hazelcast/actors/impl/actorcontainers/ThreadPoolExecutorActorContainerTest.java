@@ -53,13 +53,14 @@ public class ThreadPoolExecutorActorContainerTest {
         Hazelcast.shutdownAll();
     }
 
+    /*
     @Test
-    public void terminate() throws Exception {
+    public void exit() throws Exception {
         ActorRef actorRef = newRandomActorRef();
-        ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionId());
+        ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
 
         ThreadPoolExecutorActorContainer<TestActor> container = new ThreadPoolExecutorActorContainer<>(recipe, actorRef, executor, monitorMap);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
-        container.terminate();
-    }
+        container.exit();
+    } */
 }

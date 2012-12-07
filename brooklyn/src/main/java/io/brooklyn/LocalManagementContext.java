@@ -61,12 +61,34 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public ActorRef newEntity(EntityConfig entityConfig) {
+    public ActorRef spawn(EntityConfig entityConfig) {
+        return spawn(null, entityConfig);
+    }
+
+    @Override
+    public ActorRef spawn(Class<? extends Entity> entityClass) {
+        return spawn(null, new EntityConfig(entityClass));
+    }
+
+    @Override
+    public ActorRef spawnAndLink(ActorRef parent, Class<? extends Entity> entityClass) {
+        return spawnAndLink(parent, new EntityConfig(entityClass));
+    }
+
+    @Override
+    public ActorRef spawnAndLink(ActorRef parent, EntityConfig entityConfig) {
+        return spawn(notNull(parent,"parent"),entityConfig);
+    }
+
+    private ActorRef spawn(ActorRef parent, EntityConfig entityConfig) {
         notNull(entityConfig, "entityConfig");
 
         int partitionId = 0;//todo: we need to fix the partition id.
         ActorRecipe actorRecipe = new ActorRecipe(
-                entityConfig.getEntityClass(), partitionId, MutableMap.map("entityConfig", entityConfig));
+                entityConfig.getEntityClass(),
+                parent,
+                partitionId,
+                MutableMap.map("entityConfig", entityConfig));
         return actorRuntime.newActor(actorRecipe);
     }
 
@@ -88,7 +110,7 @@ public class LocalManagementContext implements ManagementContext {
 
     @Override
     public <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass) {
-        //todo: there should be a way to signal to the actorRuntime that we want a random location
+        //todo: there should be a way to scheduleTask to the actorRuntime that we want a random location
         int partitionId = -1;
         return newActiveObject(activeObjectClass, partitionId, MutableMap.map());
     }

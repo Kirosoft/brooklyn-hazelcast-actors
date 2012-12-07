@@ -1,14 +1,11 @@
 package com.hazelcast.actors.impl.actorcontainers;
 
-import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.utils.Util;
+import com.hazelcast.actors.api.*;
 import com.hazelcast.core.IMap;
+import com.hazelcast.spi.impl.NodeServiceImpl;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -16,19 +13,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
-public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractActorContainer<A> {
+public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractActorContainer<A, ThreadPoolExecutorActorContainer.Dependencies> {
     //todo: can be replaced by a FIeldUpdates and making it volatile.
     private final AtomicBoolean lock = new AtomicBoolean();
 
-    //todo: the fields below can all be passed as a single reference.
-    private final Executor executor;
     protected final BlockingQueue mailbox = new LinkedBlockingQueue();
 
     private ProcessingForkJoinTask processingForkJoinTask = new ProcessingForkJoinTask();
 
-    public ThreadPoolExecutorActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, Executor executor, IMap<ActorRef, Set<ActorRef>> monitorMap) {
-        super(recipe, actorRef, monitorMap);
-        this.executor = Util.notNull(executor, "executor");
+    public ThreadPoolExecutorActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, Dependencies dependencies) {
+        super(recipe, actorRef, dependencies);
     }
 
     @Override
@@ -45,7 +39,7 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
             return;
         }
 
-        executor.execute(processingForkJoinTask);
+        dependencies.executor.execute(processingForkJoinTask);
     }
 
     private class ProcessingForkJoinTask implements Runnable {
@@ -77,8 +71,8 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
                     sender = null;
                 }
 
-                if (message == TERMINATION) {
-                    handleTermination();
+                if (message == EXIT) {
+                    handleExit();
                 } else {
                     try {
                         actor.receive(message, sender);
@@ -91,31 +85,42 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
             }
 
             if (!mailbox.isEmpty()) {
-                executor.execute(this);
+                dependencies.executor.execute(this);
             }
         }
     }
 
-    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
-        private final ExecutorService executor;
-        private IMap<ActorRef, Set<ActorRef>> monitorMap;
+    public static class Dependencies extends AbstractActorContainer.Dependencies {
 
-        public Factory() {
-            this(Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 4));
-        }
+        public final ExecutorService executor;
 
-        public Factory(ExecutorService executor) {
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
+                            NodeServiceImpl nodeService, ExecutorService executor) {
+            super(actorFactory, actorRuntime, monitorMap, nodeService);
             this.executor = notNull(executor, "executor");
         }
+    }
+
+    public static class FactoryFactory implements ActorContainerFactoryFactory {
 
         @Override
-        public void init(IMap<ActorRef, Set<ActorRef>> monitorMap) {
-            this.monitorMap = notNull(monitorMap, "monitorMap");
+        public ActorContainerFactory newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap monitorMap, NodeServiceImpl nodeService) {
+            ExecutorService executorService = Executors.newFixedThreadPool(16);
+            Dependencies dependencies = new Dependencies(actorFactory, actorRuntime, monitorMap, nodeService, executorService);
+            return new Factory(dependencies);
+        }
+    }
+
+    public static class Factory<A extends Actor> implements ActorContainerFactory<A> {
+        private final Dependencies dependencies;
+
+        public Factory(Dependencies dependencies) {
+            this.dependencies = dependencies;
         }
 
         @Override
         public ThreadPoolExecutorActorContainer<A> newContainer(ActorRef actorRef, ActorRecipe<A> recipe) {
-            return new ThreadPoolExecutorActorContainer<>(recipe, actorRef, executor, monitorMap);
+            return new ThreadPoolExecutorActorContainer<>(recipe, actorRef, dependencies);
         }
     }
 }

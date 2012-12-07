@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
@@ -30,11 +31,19 @@ public final class AttributeMap {
     public void init(HazelcastInstance hazelcastInstance, ActorRecipe actorRecipe, EntityConfig config) {
         this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributes");
 
+        Set<String> strings = actorRecipe.getProperties().keySet();
+        for (String key : strings) {
+            Object value = actorRecipe.getProperties().get(key);
+            attributeMap.put(key, value);
+        }
 
-        //for (Map.Entry<String, Object> entry : actorRecipe.getProperties().entrySet()) {
-        //todo: for the time being this is disabled since the put blocks.
-        //attributeMap.put(entry.getKey(), entry.getValue());
-        //}
+        if (config != null) {
+            strings = config.getProperties().keySet();
+            for (String key : strings) {
+                Object value = config.getProperties().get(key);
+                attributeMap.put(key, value);
+            }
+        }
     }
 
     public <E> void setAttribute(Attribute<E> attribute, E newValue) {
@@ -65,14 +74,14 @@ public final class AttributeMap {
         //todo: this is a dirty hack to make sure the default value is in the map
         //this hack is temporarily needed to deal with a dealock in Hazelcast map.
         if (value == null) {
-            value = (E) entity.getRecipe().getProperties().get(attribute.getName());
-
-            if (value == null) {
-                EntityConfig entityConfig = (EntityConfig) entity.getRecipe().getProperties().get("entityConfig");
-                if (entityConfig != null) {
-                    value = (E) entityConfig.getProperty(attribute.getName());
-                }
-            }
+            //value = (E) entity.getRecipe().getProperties().get(attribute.getName());
+            //
+            //if (value == null) {
+            //    EntityConfig entityConfig = (EntityConfig) entity.getRecipe().getProperties().get("entityConfig");
+            //    if (entityConfig != null) {
+            //        value = (E) entityConfig.getProperty(attribute.getName());
+            //    }
+            //}
 
             if (value == null) {
                 value = attribute.getDefaultValue();
@@ -80,46 +89,6 @@ public final class AttributeMap {
             attributeMap.put(attribute.getName(), value);
         }
         return value;
-    }
-
-    public final PortAttributeRef newPortAttributeRef(final Attribute<PortRange> attribute) {
-        return new PortAttributeRef() {
-            @Override
-            public int get() {
-                String portName = attribute.getName() + ".port";
-                Integer port = (Integer) attributeMap.get(portName);
-                if (port == null) {
-                    if ((!(entity instanceof PlatformComponent))) {
-                        throw new IllegalStateException("Only PlatformComponent can have PortRange attributes");
-                    }
-                    Location location = ((PlatformComponent) entity).location.get();
-                    PortRange portRange = getAttribute(attribute);
-                    PortSupplier portSupplier = (PortSupplier) location;
-                    port = portSupplier.obtainPort(portRange);
-                    if (port == -1) {
-                        throw new RuntimeException();
-                    }
-                    attributeMap.put(portName, port);
-                }
-
-                return port;
-            }
-
-            @Override
-            public String getName() {
-                return attribute.getName();
-            }
-
-            @Override
-            public String toString() {
-                return Integer.toString(get());
-            }
-        };
-    }
-
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(final Attribute<E> attribute) {
-        notNull(attribute, "attribute");
-        return new BasicAttributeRefImpl<E>(attribute);
     }
 
 
@@ -150,8 +119,43 @@ public final class AttributeMap {
         return entity.self() + "." + attributeName + ".subscribers";
     }
 
-    public IntAttributeRef newIntAttribute(final Attribute<Integer> attribute) {
+    public final <E> BasicAttributeRef<E> newBasicAttributeRef(final Attribute<E> attribute) {
+        notNull(attribute, "attribute");
+
+        return new BasicAttributeRef<E>() {
+            @Override
+            public E get() {
+                return getAttribute(attribute);
+            }
+
+            @Override
+            public void set(E newValue) {
+                setAttribute(attribute, newValue);
+            }
+
+            @Override
+            public String getName() {
+                return attribute.getName();
+            }
+
+            @Override
+            public boolean isNull() {
+                return get() == null;
+            }
+
+            @Override
+            public String toString() {
+                E value = get();
+                return value == null ? "null" : value.toString();
+            }
+        };
+    }
+
+    public IntAttributeRef newIntAttributeRef(final Attribute<Integer> attribute) {
+        notNull(attribute, "attribute");
+
         return new IntAttributeRef() {
+
             @Override
             public int get() {
                 return getAttribute(attribute);
@@ -174,13 +178,14 @@ public final class AttributeMap {
                 return attribute.getName();
             }
 
+            @Override
             public String toString() {
-                return "" + get();
+                return Integer.toString(get());
             }
         };
     }
 
-    public LongAttributeRef newLongAttribute(final Attribute<Long> attribute) {
+    public LongAttributeRef newLongAttributeRef(final Attribute<Long> attribute) {
         return new LongAttributeRef() {
             @Override
             public long get() {
@@ -204,47 +209,14 @@ public final class AttributeMap {
                 return attribute.getName();
             }
 
+            @Override
             public String toString() {
-                return "" + get();
+                return Long.toString(get());
             }
         };
     }
 
-    private class BasicAttributeRefImpl<E> implements BasicAttributeRef<E> {
-        private final Attribute<E> attribute;
-
-        public BasicAttributeRefImpl(Attribute<E> attribute) {
-            this.attribute = notNull(attribute, "attribute");
-        }
-
-        @Override
-        public E get() {
-            return getAttribute(attribute);
-        }
-
-        @Override
-        public void set(E newValue) {
-            setAttribute(attribute, newValue);
-        }
-
-        @Override
-        public String getName() {
-            return attribute.getName();
-        }
-
-        @Override
-        public boolean isNull() {
-            return get() == null;
-        }
-
-        @Override
-        public String toString() {
-            E value = get();
-            return value == null ? "null" : value.toString();
-        }
-    }
-
-    public final <E> ListAttributeRef<E> newListAttribute(final Attribute<E> attribute) {
+    public final <E> ListAttributeRef<E> newListAttributeRef(final Attribute<E> attribute) {
         notNull(attribute, "attribute");
 
         return new ListAttributeRef<E>() {
@@ -327,6 +299,52 @@ public final class AttributeMap {
                     attributeMap.put(key, list);
                 return change;
             }
+
+            @Override
+            public String toString() {
+                String key = getKey();
+                List list = (List) attributeMap.get(key);
+                return list == null ? Collections.EMPTY_LIST.toString() : list.toString();
+            }
         };
     }
+
+    public final PortAttributeRef newPortAttributeRef(final Attribute<PortRange> attribute) {
+        notNull(attribute, "attribute");
+
+        return new PortAttributeRef() {
+            @Override
+            public int get() {
+                String portName = attribute.getName() + ".port";
+                Integer port = (Integer) attributeMap.get(portName);
+                if (port == null) {
+                    if ((!(entity instanceof PlatformComponent))) {
+                        throw new IllegalStateException("Only PlatformComponent can have PortRange attributes");
+                    }
+                    Location location = ((PlatformComponent) entity).location.get();
+                    PortRange portRange = getAttribute(attribute);
+                    PortSupplier portSupplier = (PortSupplier) location;
+                    port = portSupplier.obtainPort(portRange);
+                    if (port == -1) {
+                        throw new RuntimeException();
+                    }
+                    attributeMap.put(portName, port);
+                }
+
+                return port;
+            }
+
+            @Override
+            public String getName() {
+                return attribute.getName();
+            }
+
+            @Override
+            public String toString() {
+                return Integer.toString(get());
+            }
+        };
+    }
+
+
 }

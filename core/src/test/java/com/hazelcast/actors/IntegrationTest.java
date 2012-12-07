@@ -61,8 +61,8 @@ public class IntegrationTest {
     /*
     @Test
     public void monitoring() {
-        ActorRef target = actorRuntime.newActor(TestActor.class);
-        ActorRef monitor = actorRuntime.newActor(TestActor.class);
+        ActorRef target = actorRuntime.spawnAndLink(TestActor.class);
+        ActorRef monitor = actorRuntime.spawnAndLink(TestActor.class);
         actorRuntime.monitor(monitor, target);
 
         Exception ex = new Exception();
@@ -73,8 +73,8 @@ public class IntegrationTest {
 
     @Test
     public void whenMessageFailedSenderIsNotified() {
-        ActorRef target = actorRuntime.newActor(TestActor.class);
-        ActorRef monitor = actorRuntime.newActor(TestActor.class);
+        ActorRef target = actorRuntime.spawnAndLink(TestActor.class);
+        ActorRef monitor = actorRuntime.spawnAndLink(TestActor.class);
 
         Exception ex = new Exception();
         actorRuntime.send(monitor, target, ex);
@@ -85,7 +85,7 @@ public class IntegrationTest {
     @Test
     public void actorTermination() {
         ActorRef ref = actorRuntime.newActor(TestActor.class);
-        actorRuntime.terminate(ref);
+        actorRuntime.exit(ref);
 
         actorRuntime.send(null, ref, "foo");
     }

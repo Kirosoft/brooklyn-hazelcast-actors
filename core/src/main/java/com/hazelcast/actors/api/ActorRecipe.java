@@ -13,17 +13,32 @@ import java.util.Map;
  */
 public class ActorRecipe<A extends Actor> implements Serializable {
     private final String actorClass;
-    private final int partitionId;
+    private final Object partitionKey;
     private final Map<String, Object> properties;
+    private final ActorRef parent;
 
-    public ActorRecipe(Class<A> actorClass, int partitionId) {
-        this(actorClass, partitionId, null);
+    public ActorRecipe(Class<A> actorClass, Object partitionKey) {
+        this(actorClass, partitionKey, null);
     }
 
-    public ActorRecipe(Class<A> actorClass, int partitionId, Map<String, Object> properties) {
+    public ActorRecipe(Class<A> actorClass, Object partitionKey, Map<String, Object> properties) {
+        this(actorClass, null, partitionKey, properties);
+    }
+
+    public ActorRecipe(Class<A> actorClass, ActorRef parent, Object partitionKey, Map<String, Object> properties) {
         this.actorClass = Util.notNull(actorClass, "actorClass").getName();
-        this.partitionId = partitionId;
+        this.partitionKey = partitionKey;
         this.properties = properties;
+        this.parent = parent;
+    }
+
+    /**
+     * Returns parent actor that owns this child.
+     *
+     * @return the parent Actor.
+     */
+    public ActorRef getParent() {
+        return parent;
     }
 
     public Class<A> getActorClass() {
@@ -34,8 +49,8 @@ public class ActorRecipe<A extends Actor> implements Serializable {
         }
     }
 
-    public int getPartitionId() {
-        return partitionId;
+    public Object getPartitionKey() {
+        return partitionKey;
     }
 
     public Map<String, Object> getProperties() {
@@ -50,8 +65,9 @@ public class ActorRecipe<A extends Actor> implements Serializable {
     public String toString() {
         return "ActorRecipe{" +
                 "actorClass=" + actorClass +
-                ", partitionId=" + partitionId +
+                ", partitionKey=" + partitionKey +
                 ", properties=" + properties +
+                ", parent="+parent+
                 '}';
     }
 }

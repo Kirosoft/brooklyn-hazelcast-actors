@@ -9,10 +9,10 @@ public interface Actors {
     public static class Terminate implements Serializable {
     }
 
-    public static class ActorTermination implements Serializable {
+    public static class Exit implements Serializable {
         private final ActorRef actorRef;
 
-        public ActorTermination(ActorRef actorRef) {
+        public Exit(ActorRef actorRef) {
             this.actorRef = notNull(actorRef, "actorRef");
         }
 
@@ -23,9 +23,9 @@ public interface Actors {
         @Override
         public boolean equals(Object thatObj) {
             if (this == thatObj) return true;
-            if (!(thatObj instanceof ActorTermination)) return false;
+            if (!(thatObj instanceof Exit)) return false;
 
-            ActorTermination that = (ActorTermination) thatObj;
+            Exit that = (Exit) thatObj;
             if (!this.actorRef.equals(that.actorRef)) return false;
             return true;
         }

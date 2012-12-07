@@ -13,5 +13,4 @@ public class PlatformComponent extends Entity {
     public final PortAttributeRef newPortAttributeRef(Attribute<PortRange> attribute) {
         return getAttributeMap().newPortAttributeRef(attribute);
     }
-
 }

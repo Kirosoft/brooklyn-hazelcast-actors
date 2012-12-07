@@ -30,11 +30,21 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
         }
     }
 
+    //todo: need to be converted to attribute/attribute-refs. Else the state will be lost on failover.
     private final LinkedList<Double> values = new LinkedList<>();
     private final LinkedList<Long> timestamps = new LinkedList<>();
     volatile ConfidenceQualifiedNumber lastAverage = new ConfidenceQualifiedNumber(0d, 0d);
     long timePeriod = 10 * 1000;
 
+    @Override
+    public void onActivation() throws Exception {
+        super.onActivation();
+
+
+    }
+
+    //As soon as hazelcast doesn't deadlock on the activate method. The following content can be moved to that method
+    //and the receive(Start) can be deleted.
     public void receive(Start start) {
         subscribeToAttribute(self(), source.get(), sourceAttribute.get());
     }

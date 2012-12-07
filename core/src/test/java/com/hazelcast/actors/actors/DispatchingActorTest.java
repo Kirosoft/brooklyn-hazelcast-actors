@@ -51,8 +51,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenExactMatchAndNoSender() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = "foo";
@@ -62,8 +62,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenExactMatchAndSender() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new URL("http://www.actor.bar");
@@ -80,8 +80,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenNoMatch() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new HashSet<>();
@@ -95,8 +95,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenNoSpecificReceiveButSuperClassFound_thenSelectSuperclass() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new Dog();
@@ -109,8 +109,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenSpecificReceiveAndLessSpecific_thenSpecific() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new Animal();
@@ -123,8 +123,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenReceiveMethodThrowsException() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new Exception();
@@ -139,8 +139,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenReceiveObject_thenNotStuckInLoop() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new Object();
@@ -154,8 +154,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenAmbiguousReceive() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = new FooBar();
@@ -169,8 +169,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenReceiveMethodReturnsNoneVoid() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = 1;
@@ -184,8 +184,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenReceiveMethodIsStatic() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = true;
@@ -199,8 +199,8 @@ public class DispatchingActorTest {
 
     @Test
     public void whenReceiveMethodSecondArgumentIsNotActorRef() throws Exception {
-        ActorRecipe recipe = new ActorRecipe(ReflectiveTestActor.class, 0);
-        ReflectiveTestActor actor = new ReflectiveTestActor();
+        ActorRecipe recipe = new ActorRecipe(DispatchingTestActor.class, 0);
+        DispatchingTestActor actor = new DispatchingTestActor();
         actor.setActorContext(new DummyActorContext(hzInstance, recipe, actorRuntime));
 
         Object msg = (double) 1;
@@ -213,7 +213,7 @@ public class DispatchingActorTest {
     }
 
 
-    public static class ReflectiveTestActor extends DispatchingActor {
+    public static class DispatchingTestActor extends DispatchingActor {
         private Object received;
         private ActorRef sender;
         private Class receivedClazz;

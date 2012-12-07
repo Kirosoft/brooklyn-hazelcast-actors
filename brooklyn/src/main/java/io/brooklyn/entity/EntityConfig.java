@@ -1,5 +1,6 @@
 package io.brooklyn.entity;
 
+import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.Attribute;
 
 import java.io.Serializable;
@@ -49,12 +50,6 @@ public class EntityConfig<E extends Entity> implements Serializable {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public EntityConfig<E> inheritConfig(EntityConfig config){
-        notNull(config,"config");
-        properties.putAll(config.getProperties());
-        return this;
     }
 
     public <A> EntityConfig<E> addProperty(Attribute<A> attribute, A value) {

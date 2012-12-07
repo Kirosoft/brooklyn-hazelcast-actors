@@ -14,7 +14,6 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.entity.Start;
-import io.brooklyn.entity.application.ApplicationConfig;
 
 import java.net.InetAddress;
 import java.util.Map;
@@ -46,8 +45,8 @@ public class Main {
                 "address", InetAddress.getByName("127.0.0.1"));
         SshMachineLocation location = new SshMachineLocation(props);
 
-        ApplicationConfig applicationConfig = new ApplicationConfig(ExampleWebApplication.class);
-        ActorRef application = managementContext.newEntity(applicationConfig);
+        //we spawn a new Application which will not be linked to any other actor; it will be a 'root' entity.
+        ActorRef application = managementContext.spawn(ExampleWebApplication.class);
         actorRuntime.send(application, new Start(location));
     }
 }

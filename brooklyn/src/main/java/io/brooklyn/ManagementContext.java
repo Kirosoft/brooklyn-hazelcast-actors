@@ -5,6 +5,7 @@ import brooklyn.location.basic.LocationRegistry;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.attributes.Attribute;
+import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
@@ -35,7 +36,13 @@ public interface ManagementContext {
      */
     <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config);
 
-    ActorRef newEntity(EntityConfig entityConfig);
+    ActorRef spawnAndLink(ActorRef parent, EntityConfig entityConfig);
+
+    ActorRef spawnAndLink(ActorRef parent, Class<? extends Entity> entityClass);
+
+    ActorRef spawn(EntityConfig entityConfig);
+
+    ActorRef spawn(Class<? extends Entity> entityClass);
 
     void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute);
 

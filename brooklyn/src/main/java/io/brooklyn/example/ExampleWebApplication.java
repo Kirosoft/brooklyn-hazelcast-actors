@@ -10,32 +10,33 @@ import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.web.Tomcat;
 import io.brooklyn.entity.web.WebCluster;
 import io.brooklyn.entity.web.WebClusterConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExampleWebApplication extends Application {
 
+    private static final Logger log = LoggerFactory.getLogger(ExampleWebApplication.class);
+
     private final BasicAttributeRef<ActorRef> webCluster = newBasicAttributeRef("webCluster");
     private final BasicAttributeRef<ActorRef> policy = newBasicAttributeRef("policy");
-
+    private final BasicAttributeRef<ActorRef> machine = newBasicAttributeRef("machine");
 
     public void receive(Start msg) {
-        System.out.println(self() + ":ExampleWebApplication:Start");
+        if (log.isDebugEnabled()) log.debug(self() + ":ExampleWebApplication:Start");
 
-        location.set(msg.location);
 
-        webCluster.set(newEntity(new WebClusterConfig()));
+        webCluster.set(spawnAndLink(new WebClusterConfig()));
 
-        //create the policy and configures it with the webCluster.
-        policy.set(newEntity(new ReplaceWebServerOnFirePolicy.Config().cluster(webCluster)));
+        //create the policy and configure it with the webCluster.
+        policy.set(spawnAndLink(new ReplaceWebServerOnFirePolicy.Config().cluster(webCluster)));
+        //start the policy with the webCluster. It will be notified when a state change happens in the webservers of the cluster.
+        send(webCluster, new WebCluster.ChildAttributeRegistration(policy, SoftwareProcess.STATE));
 
-        ActorRef echoer = getActorRuntime().newActor(EchoActor.class);
+        //lets print then result that are published on the average used heap
+        ActorRef echoer = spawnAndLink(EchoActor.class);
+        send(webCluster, new WebCluster.ChildAttributeRegistration(echoer, Tomcat.AVERAGE_USED_HEAP));
 
-        //register the policy with the webCluster. It will be notified when a state change happens in the webservers of the cluster.
-        send(webCluster, new WebCluster.WebServerPolicyRegistration(policy, SoftwareProcess.STATE));
-
-        //lets print the result that are published on the average used heap
-        send(webCluster, new WebCluster.WebServerPolicyRegistration(echoer, Tomcat.AVERAGE_USED_HEAP));
-
-        send(webCluster, new Start(location));
+        send(webCluster, new Start(msg.location));
         send(webCluster, new WebCluster.ScaleTo(1));
     }
 }

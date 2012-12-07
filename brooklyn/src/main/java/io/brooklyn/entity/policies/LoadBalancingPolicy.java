@@ -5,11 +5,16 @@ import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.SensorEvent;
 import io.brooklyn.entity.EntityConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class LoadBalancingPolicy extends Policy {
+
+    private static final Logger log = LoggerFactory.getLogger(LoadBalancingPolicy.class);
+
 
     public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(Config.CLUSTER);
 
@@ -24,7 +29,7 @@ public class LoadBalancingPolicy extends Policy {
 
         //getActorRuntime().send(cluster, WebCluster.ScaleToMessage());
 
-        System.out.println("Detected a machine on fire: " + e);
+        if (log.isDebugEnabled()) log.debug("Detected a machine on fire: " + e);
     }
 
     public static class Config extends EntityConfig {

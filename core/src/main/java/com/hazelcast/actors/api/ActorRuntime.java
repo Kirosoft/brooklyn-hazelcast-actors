@@ -11,7 +11,7 @@ public interface ActorRuntime {
 
     void send(ActorRef sender, ActorRef destination, Object msg);
 
-    void terminate(ActorRef target);
+    void exit(ActorRef target);
 
     /**
      * Repeatedly sends a notification message to an actor. Using this mechanism instead of an internal scheduler
@@ -24,8 +24,15 @@ public interface ActorRuntime {
      * @param notification the notification.
      * @param delaysMs the delay between every notification.
      */
-    void repeatingNotification(ActorRef destination, Object notification, int delaysMs);
+    void notify(ActorRef destination, Object notification, int delaysMs);
 
+    /**
+     * A uni directional link between a listener and a target; the listener will be notified of exit events
+     * of the target.
+     *
+     * @param listener
+     * @param target
+     */
     void monitor(ActorRef listener, ActorRef target);
 
     ActorRef newActor(Class<? extends Actor> actorClass);

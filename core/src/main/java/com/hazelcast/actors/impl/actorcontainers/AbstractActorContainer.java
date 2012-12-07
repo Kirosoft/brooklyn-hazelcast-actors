@@ -1,18 +1,10 @@
 package com.hazelcast.actors.impl.actorcontainers;
 
-import com.hazelcast.actors.api.Actor;
-import com.hazelcast.actors.api.ActorContext;
-import com.hazelcast.actors.api.ActorContextAware;
-import com.hazelcast.actors.api.ActorFactory;
-import com.hazelcast.actors.api.ActorLifecycleAware;
-import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.ActorRuntime;
-import com.hazelcast.actors.api.Actors;
-import com.hazelcast.actors.api.MessageDeliveryFailure;
+import com.hazelcast.actors.api.*;
 import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.hazelcast.instance.HazelcastInstanceImpl;
 import com.hazelcast.nio.DataSerializable;
 import com.hazelcast.spi.impl.NodeServiceImpl;
 
@@ -24,29 +16,21 @@ import java.util.Set;
 import static com.hazelcast.actors.utils.Util.notNull;
 import static java.lang.String.format;
 
-public abstract class AbstractActorContainer<A extends Actor> implements DataSerializable, ActorContainer<A>, ActorContext {
-    protected final static TerminateMessage TERMINATION = new TerminateMessage();
+public abstract class AbstractActorContainer<A extends Actor, D extends AbstractActorContainer.Dependencies>
+        implements DataSerializable, ActorContainer<A>, ActorContext {
+
+    protected final static TerminateMessage EXIT = new TerminateMessage();
 
     protected final ActorRef ref;
     protected final ActorRecipe<A> recipe;
     protected A actor;
+    protected D dependencies;
 
-    //todo: the fields below can all be passed as a single reference.
-    protected final IMap<ActorRef, Set<ActorRef>> monitorMap;
-    protected ActorRuntime actorRuntime;
-    protected HazelcastInstance hzInstance;
-
-    public AbstractActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, IMap<ActorRef, Set<ActorRef>> monitorMap) {
+    public AbstractActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, D dependencies) {
         this.recipe = notNull(recipe, "recipe");
         this.ref = notNull(actorRef, "ref");
-        this.monitorMap = notNull(monitorMap, "monitorMap");
+        this.dependencies = notNull(dependencies, "dependencies");
     }
-
-    @Override
-    public ActorRef getActorRef() {
-        return self();
-    }
-
 
     @Override
     public A getActor() {
@@ -60,12 +44,12 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
 
     @Override
     public HazelcastInstance getHazelcastInstance() {
-        return hzInstance;
+        return dependencies.hzInstance;
     }
 
     @Override
     public ActorRuntime getActorRuntime() {
-        return actorRuntime;
+        return dependencies.actorRuntime;
     }
 
     @Override
@@ -74,11 +58,8 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
     }
 
     @Override
-    public A activate(ActorRuntime actorRuntime, NodeServiceImpl nodeService, ActorFactory actorFactory) {
-        this.actorRuntime = actorRuntime;
-
-        this.actor = actorFactory.newActor(recipe);
-        this.hzInstance = nodeService.getNode().hazelcastInstance;
+    public void activate() {
+        this.actor = dependencies.actorFactory.newActor(recipe);
 
         if (actor instanceof ActorContextAware) {
             ((ActorContextAware) actor).setActorContext(this);
@@ -86,33 +67,53 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
 
         if (actor instanceof ActorLifecycleAware) {
             try {
-                ((ActorLifecycleAware) actor).activate();
+                ((ActorLifecycleAware) actor).onActivation();
             } catch (Exception e) {
-                throw new ActorInstantiationException(format("Failed called %s.activate()", actor.getClass().getName()), e);
+                throw new ActorInstantiationException(format("Failed to call %s.activate()", actor.getClass().getName()), e);
             }
         }
-        return actor;
     }
 
     @Override
-    public void terminate() throws Exception {
-        post(null, TERMINATION);
+    public void exit() throws Exception {
+        post(null, EXIT);
     }
 
-    protected void handleTermination() {
+    protected void handleExit() {
+        //thinking about termination; what about orphan children.
+        //at this point we are sure that no new actors can be created;
+
         if (actor instanceof ActorLifecycleAware) {
             try {
-                ((ActorLifecycleAware) actor).terminate();
+                ((ActorLifecycleAware) actor).onExit();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
 
-        Set<ActorRef> monitors = monitorMap.get(ref);
+        //this is still mess
+        Set<ActorRef> monitors = dependencies.monitorMap.get(ref);
         if (monitors != null) {
-            Actors.ActorTermination termination = new Actors.ActorTermination(ref);
-            actorRuntime.send(ref, monitors, termination);
-            monitorMap.remove(ref);
+            try {
+                Actors.Exit termination = new Actors.Exit(ref);
+                dependencies.actorRuntime.send(ref, monitors, termination);
+            } finally {
+                dependencies.monitorMap.remove(ref);
+            }
+        }
+
+        //exit all children.
+        IMap<ActorRef, Set<ActorRef>> childrenMap = getHazelcastInstance().getMap("childrenMap");
+        childrenMap.lock(ref);
+        try {
+            Set<ActorRef> children = childrenMap.remove(ref);
+            if (children != null) {
+                for(ActorRef child: children){
+                    dependencies.actorRuntime.exit(child);
+                }
+            }
+        } finally {
+            childrenMap.unlock(ref);
         }
     }
 
@@ -122,10 +123,10 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
         MessageDeliveryFailure messageDeliveryFailure = null;
         if (sender != null) {
             messageDeliveryFailure = new MessageDeliveryFailure(ref, sender, exception);
-            actorRuntime.send(sender, messageDeliveryFailure);
+            dependencies.actorRuntime.send(sender, messageDeliveryFailure);
         }
 
-        Set<ActorRef> monitorsForSubject = monitorMap.get(ref);
+        Set<ActorRef> monitorsForSubject = dependencies.monitorMap.get(ref);
         if (monitorsForSubject != null && !monitorsForSubject.isEmpty()) {
             if (messageDeliveryFailure == null)
                 messageDeliveryFailure = new MessageDeliveryFailure(ref, sender, exception);
@@ -133,7 +134,7 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
             for (ActorRef monitor : monitorsForSubject) {
                 //if the sender also is a monitor, we don't want to send the same message to him again.
                 if (!monitor.equals(sender)) {
-                    actorRuntime.send(ref, monitor, messageDeliveryFailure);
+                    dependencies.actorRuntime.send(ref, monitor, messageDeliveryFailure);
                 }
             }
         }
@@ -160,5 +161,22 @@ public abstract class AbstractActorContainer<A extends Actor> implements DataSer
     @Override
     public void writeData(DataOutput out) throws IOException {
         //To change body map implemented methods use File | Settings | File Templates.
+    }
+
+    public static class Dependencies {
+        public final ActorRuntime actorRuntime;
+        public final IMap<ActorRef, Set<ActorRef>> monitorMap;
+        public final NodeServiceImpl nodeService;
+        public final ActorFactory actorFactory;
+        public final HazelcastInstanceImpl hzInstance;
+
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
+                            NodeServiceImpl nodeService) {
+            this.actorFactory = actorFactory;
+            this.actorRuntime = actorRuntime;
+            this.monitorMap = monitorMap;
+            this.nodeService = nodeService;
+            this.hzInstance = nodeService.getNode().hazelcastInstance;
+        }
     }
 }

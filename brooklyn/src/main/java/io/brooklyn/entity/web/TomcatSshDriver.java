@@ -91,7 +91,7 @@ public class TomcatSshDriver implements TomcatDriver {
 
     @Override
     public void stop() {
-        buildBashScriptRunner().run("terminate");
+        buildBashScriptRunner().run("exit");
     }
 
     @Override

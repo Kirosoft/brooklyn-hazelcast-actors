@@ -68,6 +68,8 @@ public class BashScriptRunner {
             envVariables.append("\n");
         }
 
+        System.out.println(envVariables);
+
         String origin = Files.toString(file, Charset.defaultCharset());
         String result = origin.replace("${EnvironmentVariables}", envVariables);
 
