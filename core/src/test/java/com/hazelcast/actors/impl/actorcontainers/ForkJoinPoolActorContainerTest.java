@@ -42,7 +42,7 @@ public class ForkJoinPoolActorContainerTest {
 
         hzInstance = Hazelcast.newHazelcastInstance(config);
         actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
-        monitorMap = hzInstance.getMap("monitorMap");
+        monitorMap = hzInstance.getMap("linkedMap");
         actorFactory = new BasicActorFactory();
         nodeService = (NodeServiceImpl) actorRuntime.getNodeService();
     }
@@ -58,7 +58,7 @@ public class ForkJoinPoolActorContainerTest {
     public void activate() {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
-        ForkJoinPoolActorContainer container = new ForkJoinPoolActorContainer<>(recipe, actorRef, monitorMap, executor);
+        ForkJoinPoolActorContainer container = new ForkJoinPoolActorContainer<>(recipe, actorRef, linkedMap, executor);
         container.activate(actorRuntime, nodeService, actorFactory);
 
         assertNotNull(container.getActor());
@@ -68,7 +68,7 @@ public class ForkJoinPoolActorContainerTest {
     public void receivingMessage() throws InterruptedException {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
-        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, monitorMap, executor);
+        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, linkedMap, executor);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
 
         Object msg = "foo";
@@ -81,7 +81,7 @@ public class ForkJoinPoolActorContainerTest {
     public void receivingMultipleMessages() throws InterruptedException {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
-        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, monitorMap, executor);
+        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, linkedMap, executor);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
 
         Object msg = "foo";
@@ -99,7 +99,7 @@ public class ForkJoinPoolActorContainerTest {
     public void receiveThrowsException() throws InterruptedException {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
-        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, monitorMap, executor);
+        ForkJoinPoolActorContainer<TestActor> container = new ForkJoinPoolActorContainer<>(recipe, actorRef, linkedMap, executor);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
 
         Exception msg = new Exception();

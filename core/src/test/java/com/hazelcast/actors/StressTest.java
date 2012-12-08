@@ -1,6 +1,7 @@
 package com.hazelcast.actors;
 
 import com.hazelcast.actors.api.Actor;
+import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
@@ -17,33 +18,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
 
-public class StressTest {
-    private static ActorService.ActorRuntimeProxyImpl actorRuntime;
-    private static HazelcastInstance hzInstance;
+public class StressTest extends AbstractTest{
     private static final AtomicInteger failureCount = new AtomicInteger();
 
-    @BeforeClass
-    public static void setUp() {
-        Config config = new Config();
-        Services services = config.getServicesConfig();
-
-        ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
-        actorServiceConfig.setEnabled(true);
-        services.addServiceConfig(actorServiceConfig);
-
-        hzInstance = Hazelcast.newHazelcastInstance(config);
-        actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        actorRuntime.destroy();
-        Hazelcast.shutdownAll();
-    }
-
-    @Test
+      @Test
     public void test() {
-        ActorRef ref = actorRuntime.newActor(DetectingActor.class);
+        ActorRef ref = actorRuntime.spawn(new ActorRecipe(DetectingActor.class));
 
         int count = 1000;
         for (int k = 0; k < count; k++) {
@@ -74,7 +54,6 @@ public class StressTest {
             if (c % 100 == 0) {
                 System.out.println("at: " + c);
             }
-
 
             concurrentAccessCounter.decrementAndGet();
         }

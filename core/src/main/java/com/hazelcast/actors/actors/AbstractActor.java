@@ -46,14 +46,17 @@ public abstract class AbstractActor implements Actor,
      * @return
      */
     public final ActorRef spawnAndLink(Class<? extends Actor> actorClass) {
-        notNull(actorClass,"actorClass");
+        notNull(actorClass, "actorClass");
 
         ActorContext actorContext = getActorContext();
         ActorRecipe actorRecipe = new ActorRecipe(actorClass,
-                actorContext.self(),
                 actorContext.getRecipe().getPartitionKey(),
                 null);
-        return actorContext.getActorRuntime().newActor(actorRecipe);
+        return actorContext.getActorRuntime().spawnAndLink(self(), actorRecipe);
+    }
+
+    public final void link(ActorRef otherActor){
+        getActorRuntime().link(self(),otherActor);
     }
 
     public final ActorContext getActorContext() {

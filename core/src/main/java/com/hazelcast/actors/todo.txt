@@ -2,19 +2,29 @@ TODO
 
 - not possible to do normal hazelcast operations from the Actor.init
 
-- constructing a more complex object from the json msg
-
 - add migration
 
 - a future returned by the send
 
-- using the fork join executor.
+- the mailbox of the actor is not durable, it is an ordinary blocking queue.
+
+- actor termination.
+
+- when an actor is created, the actor partition should store information regarding that actor, so that on failover
+the actor can be reconstructed
+
+- when an actor is killed, the actor partition should remove information regarding that actor, so that there is
+no memory leak
+
+- when a link is created, the actor runtime should verify that the actor exists.
+
+NICE
+
+- constructing a more complex object from the json msg
 
 - optimization for local calls.
 
 - when a message is send, currently you won't get any guarantee if it is delivered.
-
-- the mailbox of the actor is not durable, it is an ordinary blocking queue.
 
 - the ability to create durable/non durable actors.
 
@@ -29,11 +39,13 @@ idea if for example the entity is registered in the namespace.
 
 - reflective actor doesn't deal with with ambiguity: 1 arg vs 2 arg receive methods
 
-- actor termination.
 
 - dealing with the interrupted exception
 
 DONE
+
+
+- using the fork join executor.
 
 - reflective actor doesn't deal with subclassing ambiguity
 

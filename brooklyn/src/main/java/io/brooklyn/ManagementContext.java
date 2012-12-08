@@ -28,21 +28,17 @@ public interface ManagementContext {
      * on generating a runtime subclass of the ActiveObjectClass.
      *
      * @param activeObjectClass
-     * @param partitionId       the id of the partition this ActiveObject should run on. -1 indicates 'I don't care', so
-     *                          a partition will be looked up (currently random.. but in the future we could load balance it).
+     * @param partitionKey       the key that determines the partition. If you don't care where the ActiveObject is going
+     *                           to run, just pass null.
      * @param config
      * @param <A>
      * @return
      */
-    <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config);
+    <A extends ActiveObject> A spawnActiveObject(Class<A> activeObjectClass, Object partitionKey, Map<String, Object> config);
 
-    ActorRef spawnAndLink(ActorRef parent, EntityConfig entityConfig);
+    ActorRef spawnAndLink(ActorRef parent, EntityConfig config);
 
-    ActorRef spawnAndLink(ActorRef parent, Class<? extends Entity> entityClass);
-
-    ActorRef spawn(EntityConfig entityConfig);
-
-    ActorRef spawn(Class<? extends Entity> entityClass);
+    ActorRef spawn(EntityConfig config);
 
     void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute);
 

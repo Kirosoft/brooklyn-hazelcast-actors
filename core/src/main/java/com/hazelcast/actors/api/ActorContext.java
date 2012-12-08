@@ -13,6 +13,8 @@ public interface ActorContext {
 
     ActorRef self();
 
+    void trapExit();
+
     HazelcastInstance getHazelcastInstance();
 
     ActorRuntime getActorRuntime();

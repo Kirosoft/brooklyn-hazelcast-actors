@@ -4,7 +4,6 @@ import com.hazelcast.actors.api.*;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainer;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainerFactory;
 import com.hazelcast.actors.impl.actorcontainers.ActorContainerFactoryFactory;
-import com.hazelcast.actors.utils.MutableMap;
 import com.hazelcast.actors.utils.Util;
 import com.hazelcast.config.ServiceConfig;
 import com.hazelcast.core.IMap;
@@ -27,21 +26,19 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     public static final String NAME = "ActorService";
 
     private final ConcurrentMap<String, ActorRuntimeProxyImpl> actorSystems = new ConcurrentHashMap<>();
-    private final ExecutorService offloadExecutor = Executors.newScheduledThreadPool(10);
+
+    //TODO: These need to be pulled out; made configurable. For the time being it is good enough.
+    private final ExecutorService offloadExecutor = Executors.newFixedThreadPool(16);
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(16);
 
     private NodeServiceImpl nodeService;
-    private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(10);
+
     private ILogger logger;
     private ActorPartitionContainer[] partitionContainers;
     private ActorServiceConfig actorConfig;
-    private IMap<ActorRef, Set<ActorRef>> monitorMap;
+    private IMap<ActorRef, Set<ActorRef>> linksMap;
     private ActorFactory actorFactory;
     private ActorContainerFactoryFactory containerFactoryFactory;
-    private IMap<ActorRef, Set<ActorRef>> childrenMap;
-
-    @Override
-    public void destroy() {
-    }
 
     @Override
     public void init(NodeService nodeService, Properties properties) {
@@ -50,8 +47,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         this.actorConfig = findActorServiceConfig();
         this.actorFactory = actorConfig.getActorFactory();
         this.containerFactoryFactory = actorConfig.getActorContainerFactoryFactory();
-        this.monitorMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("monitorMap");
-        this.childrenMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("childrenMap");
+        this.linksMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("linksMap");
         int partitionCount = nodeService.getPartitionCount();
 
         this.partitionContainers = new ActorPartitionContainer[partitionCount];
@@ -60,6 +56,10 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             PartitionInfo partition = nodeService.getPartitionInfo(partitionId);
             this.partitionContainers[partitionId] = new ActorPartitionContainer(partition);
         }
+    }
+
+    @Override
+    public void destroy() {
     }
 
     private ActorServiceConfig findActorServiceConfig() {
@@ -157,7 +157,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         private ActorPartition(String name, PartitionInfo partition) {
             this.partition = partition;
             this.actorRuntime = (ActorRuntime) ActorService.this.getProxy(name);
-            this.containerFactory = containerFactoryFactory.newFactory(actorFactory, actorRuntime, monitorMap, nodeService);
+            this.containerFactory = containerFactoryFactory.newFactory(actorFactory, actorRuntime, linksMap, nodeService);
         }
 
         public void post(ActorRef sender, String id, final Object message) throws InterruptedException {
@@ -170,9 +170,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             actorContainer.post(sender, message);
         }
 
-        public ActorRef createActor(final ActorRecipe recipe, final int partitionId) throws Exception {
-            final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), recipe.getPartitionKey(), partitionId);
+        public ActorRef createActor(final ActorRecipe recipe, final Object partitionKey, final int partitionId) throws Exception {
+            final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), partitionKey, partitionId);
 
+            //we need to offload the actual creation/activation of the actor, since in Hazelcast it isn't allowed to call
+            //a Hazelcast structure from the spi.
             Future<ActorContainer> future = offloadExecutor.submit(
                     new Callable<ActorContainer>() {
                         @Override
@@ -247,20 +249,30 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         @Override
-        public void monitor(ActorRef monitor, ActorRef subject) {
-            notNull(monitor, "monitor");
-            notNull(subject, "subject");
+        public void link(ActorRef ref1, ActorRef ref2) {
+            notNull(ref1, "link");
+            notNull(ref2, "subject");
 
-            monitorMap.lock(subject);
+            if(ref1.equals(ref2)){
+                throw new IllegalArgumentException("Can't create a self link");
+            }
+
+            linkTo(ref1, ref2);
+            linkTo(ref2, ref1);
+        }
+
+        private void linkTo(ActorRef monitor, ActorRef subject) {
+            linksMap.lock(subject);
             try {
-                Set<ActorRef> monitorsForSubject = monitorMap.get(subject);
-                if (monitorsForSubject == null) {
-                    monitorsForSubject = new HashSet<>();
+                Set<ActorRef> links = linksMap.get(subject);
+                Set<ActorRef> newLinks = new HashSet<>();
+                if (links != null) {
+                    newLinks.addAll(links);
                 }
-                monitorsForSubject.add(monitor);
-                monitorMap.put(subject, monitorsForSubject);
+                newLinks.add(monitor);
+                linksMap.put(subject, newLinks);
             } finally {
-                monitorMap.unlock(subject);
+                linksMap.unlock(subject);
             }
         }
 
@@ -276,42 +288,21 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         @Override
-        public ActorRef newActor(Class<? extends Actor> actorClass, int partitionId) {
-            return newActor(actorClass, partitionId, MutableMap.map());
-        }
-
-        @Override
-        public ActorRef newActor(Class<? extends Actor> actorClass, int partitionId, Map<String, Object> config) {
-            notNull(actorClass, "actorClass");
-            if (partitionId == -1) {
-                partitionId = random.nextInt(nodeService.getPartitionCount());
-            }
-            ActorRecipe recipe = new ActorRecipe(actorClass, partitionId, config);
-            return newActor(recipe);
-        }
-
-        @Override
-        public ActorRef newActor(Class<? extends Actor> actorClass) {
-            return newActor(actorClass, -1);
-        }
-
-        @Override
-        public ActorRef newActor(Class<? extends Actor> actorClass, Map<String, Object> properties) {
-            notNull(actorClass, "actorClass");
-            int partitionId = random.nextInt(nodeService.getPartitionCount());
-            ActorRecipe recipe = new ActorRecipe(actorClass, partitionId, properties);
-            return newActor(recipe);
-        }
-
-        @Override
-        public ActorRef newActor(ActorRecipe recipe) {
+        public ActorRef spawnAndLink(ActorRef listener, ActorRecipe recipe) {
             notNull(recipe, "recipe");
 
-            Operation createOperation = new CreateOperation(name, recipe);
+            Object partitionKey = recipe.getPartitionKey();
+            //if there is no PartitionKey assigned to the recipe, it means that the caller doesn't care
+            //where the actor is going to run. So lets pick a partition randomly.
+            if (partitionKey == null) {
+                partitionKey = random.nextInt();
+            }
+
+            Operation createOperation = new CreateOperation(name, recipe, partitionKey);
             createOperation.setValidateTarget(true);
             createOperation.setServiceName(NAME);
             try {
-                int partitionId = nodeService.getPartitionId(nodeService.toData(recipe.getPartitionKey()));
+                int partitionId = nodeService.getPartitionId(nodeService.toData(partitionKey));
                 Invocation invocation = nodeService.createInvocationBuilder(NAME, createOperation, partitionId).build();
                 Future f = invocation.invoke();
                 Object result = nodeService.toObject(f.get());
@@ -325,21 +316,9 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                         throw new RuntimeException(throwable);
                     }
                 } else {
-                    ActorRef parent = recipe.getParent();
                     ActorRef child = (ActorRef) result;
-                    if (parent != null) {
-                        childrenMap.lock(parent);
-                        try {
-                            Set<ActorRef> currentChildren = childrenMap.get(parent);
-                            Set<ActorRef> newChildren = new HashSet<>();
-                            if (currentChildren != null) {
-                                newChildren.addAll(currentChildren);
-                            }
-                            newChildren.add(child);
-                            childrenMap.put(parent, newChildren);
-                        } finally {
-                            childrenMap.unlock(parent);
-                        }
+                    if (listener != null) {
+                        link(child, listener);
                     }
                     return child;
                 }
@@ -348,6 +327,12 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
+        }
+
+
+        @Override
+        public ActorRef spawn(ActorRecipe recipe) {
+            return spawnAndLink(null, recipe);
         }
 
         @Override
@@ -435,28 +420,40 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     private static class CreateOperation extends Operation {
         private String name;
         private ActorRecipe actorRecipe;
+        private Object partitionKey;
 
         private CreateOperation() {
         }
 
-        private CreateOperation(String name, ActorRecipe actorRecipe) {
+        private CreateOperation(String name, ActorRecipe actorRecipe, Object partitionKey) {
             this.name = name;
             this.actorRecipe = actorRecipe;
+            this.partitionKey = partitionKey;
         }
 
         public void writeInternal(DataOutput out) throws IOException {
             out.writeUTF(name);
+
             byte[] recipeBytes = Util.toBytes(actorRecipe);
             out.writeInt(recipeBytes.length);
             out.write(recipeBytes);
+
+            byte[] partitionKeyBytes = Util.toBytes(partitionKey);
+            out.writeInt(partitionKeyBytes.length);
+            out.write(partitionKeyBytes);
         }
 
         public void readInternal(DataInput in) throws IOException {
             name = in.readUTF();
             int recipeBytesLength = in.readInt();
+
             byte[] recipeBytes = new byte[recipeBytesLength];
             in.readFully(recipeBytes);
             this.actorRecipe = (ActorRecipe) Util.toObject(recipeBytes);
+
+            byte[] partitionKeyBytes = new byte[in.readInt()];
+            in.readFully(partitionKeyBytes);
+            this.partitionKey = Util.toObject(partitionKeyBytes);
         }
 
         @Override
@@ -465,7 +462,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             ActorPartitionContainer actorPartitionContainer = actorService.partitionContainers[getPartitionId()];
             ActorPartition actorPartition = actorPartitionContainer.getPartition(name);
             try {
-                ActorRef ref = actorPartition.createActor(actorRecipe, getPartitionId());
+                ActorRef ref = actorPartition.createActor(actorRecipe, partitionKey, getPartitionId());
                 getResponseHandler().sendResponse(actorService.nodeService.toData(ref));
             } catch (Exception e) {
                 getResponseHandler().sendResponse(actorService.nodeService.toData(e));

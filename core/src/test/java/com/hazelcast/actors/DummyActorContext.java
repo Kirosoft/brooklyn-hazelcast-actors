@@ -27,6 +27,10 @@ public class DummyActorContext implements ActorContext {
     }
 
     @Override
+    public void trapExit() {
+    }
+
+    @Override
     public HazelcastInstance getHazelcastInstance() {
         return hzInstance;
     }

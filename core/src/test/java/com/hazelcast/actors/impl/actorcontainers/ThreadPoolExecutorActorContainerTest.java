@@ -42,7 +42,7 @@ public class ThreadPoolExecutorActorContainerTest {
 
         hzInstance = Hazelcast.newHazelcastInstance(config);
         actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
-        monitorMap = hzInstance.getMap("monitorMap");
+        monitorMap = hzInstance.getMap("linkedMap");
         actorFactory = new BasicActorFactory();
         nodeService = (NodeServiceImpl) actorRuntime.getNodeService();
         executor = Executors.newSingleThreadExecutor();
@@ -59,7 +59,7 @@ public class ThreadPoolExecutorActorContainerTest {
         ActorRef actorRef = newRandomActorRef();
         ActorRecipe<TestActor> recipe = new ActorRecipe<>(TestActor.class, actorRef.getPartitionKey());
 
-        ThreadPoolExecutorActorContainer<TestActor> container = new ThreadPoolExecutorActorContainer<>(recipe, actorRef, executor, monitorMap);
+        ThreadPoolExecutorActorContainer<TestActor> container = new ThreadPoolExecutorActorContainer<>(recipe, actorRef, executor, linkedMap);
         TestActor actor = container.activate(actorRuntime, nodeService, actorFactory);
         container.exit();
     } */

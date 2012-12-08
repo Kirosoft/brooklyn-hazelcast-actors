@@ -2,17 +2,27 @@ package com.hazelcast.actors;
 
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.utils.Util;
+import com.hazelcast.core.Instance;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TestUtils {
+
+    public static void destroySilently(Instance instance) {
+        if (instance == null) return;
+
+        try {
+            instance.destroy();
+        } catch (RuntimeException e) {
+      }
+    }
 
     public static void assertInstanceOf(Class expectedClass, Object o) {
         if (o == null) {
@@ -42,7 +52,20 @@ public class TestUtils {
         }
     }
 
+    public static void assertValidActorRef(ActorRef ref) {
+        assertNotNull(ref);
+        assertNotNull(ref.getPartitionKey());
+        assertTrue("partitionId should be >=0", ref.getPartitionId() >= 0);
+    }
+
+    public static void assertContains(Set<ActorRef> actual, ActorRef... expected) {
+        assertEquals(actual.size(), expected.length);
+        for (ActorRef ref : expected) {
+            assertTrue(actual.contains(ref));
+        }
+    }
+
     public static ActorRef newRandomActorRef() {
-        return new ActorRef(UUID.randomUUID().toString(), "Foo",1);
+        return new ActorRef(UUID.randomUUID().toString(), "Foo", 1);
     }
 }

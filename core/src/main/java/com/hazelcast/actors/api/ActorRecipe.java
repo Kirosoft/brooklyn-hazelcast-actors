@@ -15,30 +15,19 @@ public class ActorRecipe<A extends Actor> implements Serializable {
     private final String actorClass;
     private final Object partitionKey;
     private final Map<String, Object> properties;
-    private final ActorRef parent;
+
+    public ActorRecipe(Class<A> actorClass){
+        this(actorClass, null);
+    }
 
     public ActorRecipe(Class<A> actorClass, Object partitionKey) {
         this(actorClass, partitionKey, null);
     }
 
     public ActorRecipe(Class<A> actorClass, Object partitionKey, Map<String, Object> properties) {
-        this(actorClass, null, partitionKey, properties);
-    }
-
-    public ActorRecipe(Class<A> actorClass, ActorRef parent, Object partitionKey, Map<String, Object> properties) {
         this.actorClass = Util.notNull(actorClass, "actorClass").getName();
         this.partitionKey = partitionKey;
         this.properties = properties;
-        this.parent = parent;
-    }
-
-    /**
-     * Returns parent actor that owns this child.
-     *
-     * @return the parent Actor.
-     */
-    public ActorRef getParent() {
-        return parent;
     }
 
     public Class<A> getActorClass() {
@@ -67,7 +56,6 @@ public class ActorRecipe<A extends Actor> implements Serializable {
                 "actorClass=" + actorClass +
                 ", partitionKey=" + partitionKey +
                 ", properties=" + properties +
-                ", parent="+parent+
                 '}';
     }
 }

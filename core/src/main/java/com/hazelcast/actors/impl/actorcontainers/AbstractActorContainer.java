@@ -25,6 +25,8 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
     protected final ActorRecipe<A> recipe;
     protected A actor;
     protected D dependencies;
+    protected volatile boolean trapExit = false;
+    protected volatile boolean exitPending = false;
 
     public AbstractActorContainer(ActorRecipe<A> recipe, ActorRef actorRef, D dependencies) {
         this.recipe = notNull(recipe, "recipe");
@@ -58,6 +60,11 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
     }
 
     @Override
+    public void trapExit() {
+        trapExit = true;
+    }
+
+    @Override
     public void activate() {
         this.actor = dependencies.actorFactory.newActor(recipe);
 
@@ -76,13 +83,17 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
 
     @Override
     public void exit() throws Exception {
-        post(null, EXIT);
+        if (trapExit) {
+            post(null, EXIT);
+        } else {
+            exitPending = true;
+            //todo: following is  hack to get the actor running
+            post(null, EXIT);
+            //todo: the problem here is that we don't want to wait till the next message is send to
+        }
     }
 
     protected void handleExit() {
-        //thinking about termination; what about orphan children.
-        //at this point we are sure that no new actors can be created;
-
         if (actor instanceof ActorLifecycleAware) {
             try {
                 ((ActorLifecycleAware) actor).onExit();
@@ -91,29 +102,15 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
             }
         }
 
-        //this is still mess
-        Set<ActorRef> monitors = dependencies.monitorMap.get(ref);
-        if (monitors != null) {
+        Set<ActorRef> linkedActors = dependencies.linkedMap.remove(ref);
+        if (linkedActors != null) {
             try {
-                Actors.Exit termination = new Actors.Exit(ref);
-                dependencies.actorRuntime.send(ref, monitors, termination);
-            } finally {
-                dependencies.monitorMap.remove(ref);
-            }
-        }
-
-        //exit all children.
-        IMap<ActorRef, Set<ActorRef>> childrenMap = getHazelcastInstance().getMap("childrenMap");
-        childrenMap.lock(ref);
-        try {
-            Set<ActorRef> children = childrenMap.remove(ref);
-            if (children != null) {
-                for(ActorRef child: children){
-                    dependencies.actorRuntime.exit(child);
+                for(ActorRef linkedActor: linkedActors){
+                   getActorRuntime().exit(linkedActor);
                 }
-            }
-        } finally {
-            childrenMap.unlock(ref);
+            } finally {
+                 dependencies.linkedMap.remove(ref);
+             }
         }
     }
 
@@ -126,13 +123,13 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
             dependencies.actorRuntime.send(sender, messageDeliveryFailure);
         }
 
-        Set<ActorRef> monitorsForSubject = dependencies.monitorMap.get(ref);
+        Set<ActorRef> monitorsForSubject = dependencies.linkedMap.get(ref);
         if (monitorsForSubject != null && !monitorsForSubject.isEmpty()) {
             if (messageDeliveryFailure == null)
                 messageDeliveryFailure = new MessageDeliveryFailure(ref, sender, exception);
 
             for (ActorRef monitor : monitorsForSubject) {
-                //if the sender also is a monitor, we don't want to send the same message to him again.
+                //if the sender also is a link, we don't want to send the same message to him again.
                 if (!monitor.equals(sender)) {
                     dependencies.actorRuntime.send(ref, monitor, messageDeliveryFailure);
                 }
@@ -165,16 +162,16 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
 
     public static class Dependencies {
         public final ActorRuntime actorRuntime;
-        public final IMap<ActorRef, Set<ActorRef>> monitorMap;
+        public final IMap<ActorRef, Set<ActorRef>> linkedMap;
         public final NodeServiceImpl nodeService;
         public final ActorFactory actorFactory;
         public final HazelcastInstanceImpl hzInstance;
 
-        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> linkedMap,
                             NodeServiceImpl nodeService) {
             this.actorFactory = actorFactory;
             this.actorRuntime = actorRuntime;
-            this.monitorMap = monitorMap;
+            this.linkedMap = linkedMap;
             this.nodeService = nodeService;
             this.hzInstance = nodeService.getNode().hazelcastInstance;
         }

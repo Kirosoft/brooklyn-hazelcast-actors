@@ -61,35 +61,24 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public ActorRef spawn(EntityConfig entityConfig) {
-        return spawn(null, entityConfig);
+    public ActorRef spawn(EntityConfig config) {
+        return spawn(null, config);
     }
 
     @Override
-    public ActorRef spawn(Class<? extends Entity> entityClass) {
-        return spawn(null, new EntityConfig(entityClass));
+    public ActorRef spawnAndLink(ActorRef caller, EntityConfig config) {
+        return spawn(notNull(caller,"caller"), config);
     }
 
-    @Override
-    public ActorRef spawnAndLink(ActorRef parent, Class<? extends Entity> entityClass) {
-        return spawnAndLink(parent, new EntityConfig(entityClass));
-    }
-
-    @Override
-    public ActorRef spawnAndLink(ActorRef parent, EntityConfig entityConfig) {
-        return spawn(notNull(parent,"parent"),entityConfig);
-    }
-
-    private ActorRef spawn(ActorRef parent, EntityConfig entityConfig) {
+    private ActorRef spawn(ActorRef caller, EntityConfig entityConfig) {
         notNull(entityConfig, "entityConfig");
 
         int partitionId = 0;//todo: we need to fix the partition id.
         ActorRecipe actorRecipe = new ActorRecipe(
                 entityConfig.getEntityClass(),
-                parent,
                 partitionId,
                 MutableMap.map("entityConfig", entityConfig));
-        return actorRuntime.newActor(actorRecipe);
+        return actorRuntime.spawnAndLink(caller, actorRecipe);
     }
 
     public void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute) {
@@ -112,16 +101,17 @@ public class LocalManagementContext implements ManagementContext {
     public <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass) {
         //todo: there should be a way to scheduleTask to the actorRuntime that we want a random location
         int partitionId = -1;
-        return newActiveObject(activeObjectClass, partitionId, MutableMap.map());
+        return spawnActiveObject(activeObjectClass, partitionId, MutableMap.map());
     }
 
     @Override
-    public <A extends ActiveObject> A newActiveObject(Class<A> activeObjectClass, int partitionId, Map<String, Object> config) {
+    public <A extends ActiveObject> A spawnActiveObject(Class<A> activeObjectClass, Object partitionKey, Map<String, Object> config) {
         notNull(activeObjectClass, "activeObjectClass");
 
 
         Map<String, Object> actorConfig = MutableMap.map("activeObjectClass", activeObjectClass.getName(), "config", config);
-        final ActorRef ref = actorRuntime.newActor(ActiveObjectActor.class, partitionId, actorConfig);
+        ActorRecipe recipe = new ActorRecipe(ActiveObjectActor.class,partitionKey,actorConfig);
+        final ActorRef ref = actorRuntime.spawn(recipe);
 
         return (A) Enhancer.create(activeObjectClass, new MethodInterceptor() {
             @Override
