@@ -31,15 +31,13 @@ public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends P
     }
 
     public void receive(Start start){
-        machine.set(start.machine);
+        //machine.set(start.machine);
     }
 
     public static class Start extends AbstractMessage{
-        public final ActorRef machine;
         public final Location location;
 
-        public Start(ActorRef machine, Location location) {
-            this.machine = machine;
+        public Start(Location location) {
             this.location = location;
         }
     }

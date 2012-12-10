@@ -14,7 +14,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.entity.EntityConfig;
-import io.brooklyn.entity.Start;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 
 import java.net.InetAddress;
 import java.util.Map;
@@ -48,6 +48,6 @@ public class Main {
 
         //we spawn a new Application which will not be linked to any other actor; it will be a 'root' entity.
         ActorRef application = managementContext.spawn(new EntityConfig(ExampleWebApplication.class));
-        actorRuntime.send(application, new Start(location));
+        actorRuntime.send(application, new SoftwareProcess.Start(location));
     }
 }

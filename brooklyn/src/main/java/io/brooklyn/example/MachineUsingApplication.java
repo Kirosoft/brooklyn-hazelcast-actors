@@ -14,10 +14,10 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.entity.Start;
 import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.application.ApplicationConfig;
 import io.brooklyn.entity.machines.Machine;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.web.TomcatConfig;
 
 import java.net.InetAddress;
@@ -28,7 +28,7 @@ public class MachineUsingApplication extends Application {
     private final BasicAttributeRef<ActorRef> machine1 = newBasicAttributeRef("machine1", ActorRef.class);
     private final BasicAttributeRef<ActorRef> tomcat = newBasicAttributeRef("tomcat", ActorRef.class);
 
-    public void receive(Start start) {
+    public void receive(SoftwareProcess.Start start) {
         Machine.MachineConfig machineConfig = new Machine.MachineConfig();
         machine1.set(spawnAndLink(machineConfig));
 
@@ -65,6 +65,6 @@ public class MachineUsingApplication extends Application {
 
         ApplicationConfig applicationConfig = new ApplicationConfig(Application.class);
         ActorRef application = managementContext.spawn(applicationConfig);
-        actorRuntime.send(application, new Start(location));
+        actorRuntime.send(application, new SoftwareProcess.Start(location));
     }
 }

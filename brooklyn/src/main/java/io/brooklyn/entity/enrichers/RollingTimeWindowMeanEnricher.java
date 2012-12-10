@@ -5,7 +5,6 @@ import io.brooklyn.attributes.Attribute;
 import io.brooklyn.attributes.BasicAttributeRef;
 import io.brooklyn.attributes.SensorEvent;
 import io.brooklyn.entity.EntityConfig;
-import io.brooklyn.entity.Start;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -33,25 +32,18 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
     //todo: need to be converted to attribute/attribute-refs. Else the state will be lost on failover.
     private final LinkedList<Double> values = new LinkedList<>();
     private final LinkedList<Long> timestamps = new LinkedList<>();
-    volatile ConfidenceQualifiedNumber lastAverage = new ConfidenceQualifiedNumber(0d, 0d);
-    long timePeriod = 10 * 1000;
+    private volatile ConfidenceQualifiedNumber lastAverage = new ConfidenceQualifiedNumber(0d, 0d);
+    private long timePeriod = 10 * 1000;
 
     @Override
     public void onActivation() throws Exception {
         super.onActivation();
 
-
-    }
-
-    //As soon as hazelcast doesn't deadlock on the activate method. The following content can be moved to that method
-    //and the receive(Start) can be deleted.
-    public void receive(Start start) {
         subscribeToAttribute(self(), source.get(), sourceAttribute.get());
     }
 
     public void receive(SensorEvent event) {
         //System.out.println(self()+"RollingTimeWindowMeanEnricher:"+event);
-
 
         if (event.getNewValue() == null) {
             return;
@@ -65,7 +57,7 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
         send(source, new AttributePublication<>(targetAttribute, average));
     }
 
-    public ConfidenceQualifiedNumber getAverage( long now) {
+    public ConfidenceQualifiedNumber getAverage(long now) {
         pruneValues(now);
         if (timestamps.isEmpty()) {
             return lastAverage = new ConfidenceQualifiedNumber(lastAverage.value, 0.0d);

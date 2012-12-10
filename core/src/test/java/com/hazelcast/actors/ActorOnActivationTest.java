@@ -27,10 +27,21 @@ public class ActorOnActivationTest extends AbstractTest {
         someMap = null;
     }
 
-    //this test is ignored, because currently it leads to the expected deadlock.
-    @Ignore
+
+    //This test works fine. But it is using the map directly instead of being used from a thread that is
+    //'started' from the SPI.
     @Test
-    public void test() {
+    public void directAccessTest(){
+        someMap = hzInstance.getMap("somemap"+ UUID.randomUUID().toString());
+        System.out.println(Thread.currentThread().getName());
+
+        randomMapAccess();
+    }
+
+    //this test is ignored, because currently it leads to the expected deadlock.
+    //@Ignore
+    @Test
+    public void testFromActor() {
         someMap = hzInstance.getMap("somemap"+ UUID.randomUUID().toString());
 
         ActorRef ref = actorRuntime.spawn(new ActorRecipe(InitActor.class));
@@ -47,17 +58,21 @@ public class ActorOnActivationTest extends AbstractTest {
 
             System.out.println(Thread.currentThread().getName());
 
-            for (int k = 0; k < 100; k++) {
-                String key = "foo" + k;
-                System.out.println(key);
-                someMap.put(key, k);
-                someMap.get(key);
-            }
+            randomMapAccess();
             onActivationCalled = true;
         }
 
         @Override
         public void receive(Object msg, ActorRef sender) throws Exception {
+        }
+    }
+
+    private static void randomMapAccess() {
+        for (int k = 0; k < 100; k++) {
+            String key = "foo" + k;
+            System.out.println(key);
+            someMap.put(key, k);
+            someMap.get(key);
         }
     }
 }

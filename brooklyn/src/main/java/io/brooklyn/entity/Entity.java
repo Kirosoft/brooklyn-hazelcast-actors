@@ -4,6 +4,7 @@ import com.hazelcast.actors.actors.DispatchingActor;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.Injected;
+import com.hazelcast.actors.api.MessageDeliveryFailure;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.ManagementContext;
 import io.brooklyn.attributes.Attribute;
@@ -121,6 +122,10 @@ public abstract class Entity extends DispatchingActor {
         if (log.isDebugEnabled()) log.debug(self() + ":Entity:" + publication);
 
         attributeMap.setAttribute(publication.attribute, publication.value);
+    }
+
+    public void receive(MessageDeliveryFailure e){
+        log.debug(""+e);
     }
 
     /**

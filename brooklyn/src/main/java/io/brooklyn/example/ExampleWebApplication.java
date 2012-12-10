@@ -3,7 +3,6 @@ package io.brooklyn.example;
 import com.hazelcast.actors.actors.EchoActor;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.entity.Start;
 import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.policies.ReplaceWebServerOnFirePolicy;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -21,7 +20,7 @@ public class ExampleWebApplication extends Application {
     private final BasicAttributeRef<ActorRef> policy = newBasicAttributeRef("policy");
     private final BasicAttributeRef<ActorRef> machine = newBasicAttributeRef("machine");
 
-    public void receive(Start msg) {
+    public void receive(SoftwareProcess.Start msg) {
         if (log.isDebugEnabled()) log.debug(self() + ":ExampleWebApplication:Start");
 
 
@@ -36,7 +35,7 @@ public class ExampleWebApplication extends Application {
         ActorRef echoer = spawnAndLink(EchoActor.class);
         send(webCluster, new WebCluster.ChildAttributeRegistration(echoer, Tomcat.AVERAGE_USED_HEAP));
 
-        send(webCluster, new Start(msg.location));
+        send(webCluster, new SoftwareProcess.Start(msg.location));
         send(webCluster, new WebCluster.ScaleTo(1));
     }
 }

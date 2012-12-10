@@ -65,6 +65,15 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         //the actor will start itself, so that every second it gets a message to update its jmx information
         //if that is available.
         notifySelf(new JmxUpdate(), 1000);
+
+        RollingTimeWindowMeanEnricher.Config averageUsedHeapEnricherConfig = new RollingTimeWindowMeanEnricher.Config()
+                .targetAttribute(AVERAGE_USED_HEAP)
+                .sourceAttribute(USED_HEAP)
+                .source(self());
+        //the created enricher (which is also an entity) is linked to this process. So if tomcat exits, also the
+        //enricher is going to exit. Also the enricher will be created in the same partition as tomcat; we want them
+        //to be as close as possible to prevent remoting.
+        spawnAndLink(averageUsedHeapEnricherConfig);
     }
 
     public void receive(Undeployment undeployment) {
@@ -83,16 +92,6 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start");
 
         super.receive(start);
-
-        //TODO: This should be placed in the 'activate'. The problem is that Hazelcast deadlocks in that method.
-        //the average used heap is calculated using an enricher.
-        RollingTimeWindowMeanEnricher.Config config = new RollingTimeWindowMeanEnricher.Config()
-                .targetAttribute(AVERAGE_USED_HEAP)
-                .sourceAttribute(USED_HEAP)
-                .source(self());
-        //the created enricher (which is also an entity) is linked to this process. So if tomcat exits, also the
-        //enricher is going to exit.
-        send(spawnAndLink(config), start);
 
         location.set(start.location);
 

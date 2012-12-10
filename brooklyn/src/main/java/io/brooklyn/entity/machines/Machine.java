@@ -45,7 +45,8 @@ public class Machine extends Entity {
     public void receive(StartSoftwareProcess startSoftwareProcess) {
         ActorRef process = spawnAndLink(startSoftwareProcess.softwareProcessConfig);
         softwareProcesses.add(process);
-        send(process, new SoftwareProcess.Start(self(), location.get()));
+        //todo: machine in the future will be passed
+        send(process, new SoftwareProcess.Start(location.get()));
     }
 
     public static class StartSoftwareProcess extends AbstractMessage {

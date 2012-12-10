@@ -39,6 +39,7 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
     private IMap<ActorRef, Set<ActorRef>> linksMap;
     private ActorFactory actorFactory;
     private ActorContainerFactoryFactory containerFactoryFactory;
+    private IMap<ActorRef, Object> actorMap;
 
     @Override
     public void init(NodeService nodeService, Properties properties) {
@@ -48,13 +49,14 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         this.actorFactory = actorConfig.getActorFactory();
         this.containerFactoryFactory = actorConfig.getActorContainerFactoryFactory();
         this.linksMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("linksMap");
-        int partitionCount = nodeService.getPartitionCount();
+        this.actorMap = ((NodeServiceImpl) nodeService).getNode().hazelcastInstance.getMap("actorMap");
 
-        this.partitionContainers = new ActorPartitionContainer[partitionCount];
 
-        for (int partitionId = 0; partitionId < partitionCount; partitionId++) {
+        //initializing the PartitionContainers.
+        partitionContainers = new ActorPartitionContainer[nodeService.getPartitionCount()];
+        for (int partitionId = 0; partitionId < partitionContainers.length; partitionId++) {
             PartitionInfo partition = nodeService.getPartitionInfo(partitionId);
-            this.partitionContainers[partitionId] = new ActorPartitionContainer(partition);
+            partitionContainers[partitionId] = new ActorPartitionContainer(partition);
         }
     }
 
@@ -174,37 +176,39 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), partitionKey, partitionId);
 
             //we need to offload the actual creation/activation of the actor, since in Hazelcast it isn't allowed to call
-            //a Hazelcast structure from the spi.
+            //a Hazelcast structure from the spi thread.
             Future<ActorContainer> future = offloadExecutor.submit(
                     new Callable<ActorContainer>() {
                         @Override
                         public ActorContainer call() throws Exception {
                             try {
                                 ActorContainer container = containerFactory.newContainer(ref, recipe);
+                                actorMap.put(ref, recipe);
+                                actorContainerMap.put(ref.getId(), container);
                                 container.activate();
                                 return container;
                             } catch (Exception e) {
-                                e.printStackTrace();
+                                actorMap.put(ref, e);
                                 throw e;
                             }
                         }
                     }
             );
 
-            try {
-                ActorContainer container = future.get();
-                actorContainerMap.put(ref.getId(), container);
-                return ref;
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof Exception) {
-                    throw (Exception) cause;
-                } else {
-                    throw new RuntimeException(e);
-                }
-            }
+            //try {
+            //future.get();
+
+            return ref;
+            //} catch (InterruptedException e) {
+            //    throw new RuntimeException(e);
+            //} catch (ExecutionException e) {
+            //    Throwable cause = e.getCause();
+            //    if (cause instanceof Exception) {
+            //        throw (Exception) cause;
+            //    } else {
+            //        throw new RuntimeException(e);
+            //    }
+            //}
         }
 
         public void exit(final ActorRef target) throws InterruptedException {
@@ -253,15 +257,26 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
             notNull(ref1, "link");
             notNull(ref2, "subject");
 
-            if(ref1.equals(ref2)){
+            if (ref1.equals(ref2)) {
                 throw new IllegalArgumentException("Can't create a self link");
+            }
+
+            if(!actorMap.containsKey(ref1)){
+                throw new IllegalArgumentException();
+            }
+
+            if(!actorMap.containsKey(ref2)){
+                throw new IllegalArgumentException();
             }
 
             linkTo(ref1, ref2);
             linkTo(ref2, ref1);
+
+            //todo: it could be the link is created, but that the actor already is exited. So we need to do some rechecking.
         }
 
         private void linkTo(ActorRef monitor, ActorRef subject) {
+
             linksMap.lock(subject);
             try {
                 Set<ActorRef> links = linksMap.get(subject);
@@ -305,7 +320,18 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                 int partitionId = nodeService.getPartitionId(nodeService.toData(partitionKey));
                 Invocation invocation = nodeService.createInvocationBuilder(NAME, createOperation, partitionId).build();
                 Future f = invocation.invoke();
-                Object result = nodeService.toObject(f.get());
+                ActorRef ref = (ActorRef) nodeService.toObject(f.get());
+                Object result;
+                //we need to apply some hacking; because we need to wait till the container completes activation.
+                //Normally this should be done using a future, but Hazelcast is deadlocking on the container initialization.
+                for (; ; ) {
+                    result = actorMap.get(ref);
+                    if (result != null) {
+                        break;
+                    }
+                    Util.sleep(100);
+                }
+
                 if (result instanceof Throwable) {
                     Throwable throwable = (Throwable) result;
                     StackTraceElement[] clientSideStackTrace = Thread.currentThread().getStackTrace();
@@ -316,11 +342,10 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
                         throw new RuntimeException(throwable);
                     }
                 } else {
-                    ActorRef child = (ActorRef) result;
                     if (listener != null) {
-                        link(child, listener);
+                        link(ref, listener);
                     }
-                    return child;
+                    return ref;
                 }
             } catch (RuntimeException e) {
                 throw e;

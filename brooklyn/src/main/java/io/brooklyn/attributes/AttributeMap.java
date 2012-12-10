@@ -345,6 +345,4 @@ public final class AttributeMap {
             }
         };
     }
-
-
 }

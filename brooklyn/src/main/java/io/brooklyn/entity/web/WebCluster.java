@@ -3,8 +3,8 @@ package io.brooklyn.entity.web;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.entity.Group;
-import io.brooklyn.entity.Start;
 import io.brooklyn.entity.Stop;
+import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +21,7 @@ public class WebCluster extends Group {
         super.onActivation();
     }
 
-    public void receive(Start start) {
+    public void receive(SoftwareProcess.Start start) {
         if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:Start");
         location.set(start.location);
         if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:Start Complete");
@@ -57,7 +57,7 @@ public class WebCluster extends Group {
             addChild(webServer);
 
             //lets start webServer.
-            send(webServer, new Start(location));
+            send(webServer, new SoftwareProcess.Start(location.get()));
         }
     }
 
