@@ -4,8 +4,7 @@ package io.brooklyn;
 import brooklyn.location.basic.LocationRegistry;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.entity.Entity;
+import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
@@ -40,7 +39,7 @@ public interface ManagementContext {
 
     ActorRef spawn(EntityConfig config);
 
-    void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute);
+    void subscribeToAttribute(ActorRef listener, ActorRef target, AttributeType attributeType);
 
     void registerInNamespace(String nameSpace, ActorRef ref);
 

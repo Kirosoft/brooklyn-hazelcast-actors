@@ -2,7 +2,8 @@ package io.brooklyn.entity.web;
 
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.entity.Group;
+import io.brooklyn.attributes.RelationsAttribute;
+import io.brooklyn.entity.PlatformComponent;
 import io.brooklyn.entity.Stop;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import org.slf4j.Logger;
@@ -10,14 +11,15 @@ import org.slf4j.LoggerFactory;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
-public class WebCluster extends Group {
+public class WebCluster extends PlatformComponent {
 
     private static final Logger log = LoggerFactory.getLogger(Tomcat.class);
 
+    protected final RelationsAttribute webservers = newRelationsAttribute("webservers");
 
     @Override
     public void onActivation() throws Exception {
-        if (log.isDebugEnabled())log.debug(self() + ":WebCluster:Activate");
+        if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:Activate");
         super.onActivation();
     }
 
@@ -30,7 +32,7 @@ public class WebCluster extends Group {
     public void receive(ScaleTo scaleTo) {
         if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:ScaleTo");
 
-        int delta = scaleTo.size - children.size();
+        int delta = scaleTo.size - webservers.size();
         if (delta == 0) {
             //no change.
         } else if (delta > 0) {
@@ -44,7 +46,7 @@ public class WebCluster extends Group {
 
     private void scaleDown(int delta) {
         for (int k = 0; k < delta; k++) {
-            ActorRef webServer = children.removeFirst();
+            ActorRef webServer = webservers.removeFirst();
             send(webServer, new Stop());
         }
     }
@@ -54,7 +56,7 @@ public class WebCluster extends Group {
             //todo: we want to use a factory here. We do not want to be tied to tomcat
             //todo: we are linking to the webserver; the question is if we want to do that.
             ActorRef webServer = spawnAndLink(new TomcatConfig());
-            addChild(webServer);
+            webservers.add(webServer);
 
             //lets start webServer.
             send(webServer, new SoftwareProcess.Start(location.get()));
@@ -64,12 +66,12 @@ public class WebCluster extends Group {
     public void receive(ReplaceWebServer replaceWebServer) {
         if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:ReplaceWebServer");
 
-        boolean found = children.remove(replaceWebServer.webServer);
+        boolean found = webservers.remove(replaceWebServer.webServer);
         if (!found) {
             return;
         }
         send(replaceWebServer.webServer, new Stop());
-        scaleUp(children.size() + 1);
+        scaleUp(webservers.size() + 1);
     }
 
     //scales the webcluster to a certain size. This will be send by the replaceMemberOnFirePolicy.

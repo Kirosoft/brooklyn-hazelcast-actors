@@ -1,7 +1,6 @@
 package io.brooklyn.entity;
 
-import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.AttributeType;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -52,9 +51,9 @@ public class EntityConfig<E extends Entity> implements Serializable {
         }
     }
 
-    public <A> EntityConfig<E> addProperty(Attribute<A> attribute, A value) {
-        notNull(attribute, "attribute");
-        return addProperty(attribute.getName(), value);
+    public <A> EntityConfig<E> addProperty(AttributeType<A> attributeType, A value) {
+        notNull(attributeType, "attribute");
+        return addProperty(attributeType.getName(), value);
     }
 
     public EntityConfig<E> addProperty(String name, Object value) {
@@ -68,9 +67,9 @@ public class EntityConfig<E extends Entity> implements Serializable {
         return new HashSet<>(properties.keySet()).iterator();
     }
 
-    public <A> A getProperty(Attribute<A> attribute){
-        notNull(attribute,"attribute");
-        return (A)properties.get(attribute.getName());
+    public <A> A getProperty(AttributeType<A> attributeType){
+        notNull(attributeType,"attribute");
+        return (A)properties.get(attributeType.getName());
     }
 
     public Object getProperty(String name) {

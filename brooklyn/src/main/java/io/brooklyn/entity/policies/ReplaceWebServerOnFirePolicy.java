@@ -2,8 +2,8 @@ package io.brooklyn.entity.policies;
 
 import brooklyn.entity.basic.Lifecycle;
 import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.attributes.AttributeType;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.attributes.SensorEvent;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.web.WebCluster;
@@ -14,7 +14,7 @@ import io.brooklyn.entity.web.WebCluster;
  */
 public class ReplaceWebServerOnFirePolicy extends Policy {
 
-    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(Config.CLUSTER);
+    public final ReferenceAttribute<ActorRef> cluster = newReferenceAttribute(Config.CLUSTER);
 
     public void receive(SensorEvent e) {
         System.out.println(self() + ":ReplaceWebServerOnFirePolicy:" + e);
@@ -28,7 +28,7 @@ public class ReplaceWebServerOnFirePolicy extends Policy {
     }
 
     public static class Config extends EntityConfig {
-        public static final Attribute<ActorRef> CLUSTER = new Attribute<>("cluster");
+        public static final AttributeType<ActorRef> CLUSTER = new AttributeType<>("cluster");
 
         public Config() {
             super(ReplaceWebServerOnFirePolicy.class);
@@ -39,7 +39,7 @@ public class ReplaceWebServerOnFirePolicy extends Policy {
             return this;
         }
 
-        public Config cluster(BasicAttributeRef<ActorRef> cluster) {
+        public Config cluster(ReferenceAttribute<ActorRef> cluster) {
             addProperty(CLUSTER, cluster.get());
             return this;
         }

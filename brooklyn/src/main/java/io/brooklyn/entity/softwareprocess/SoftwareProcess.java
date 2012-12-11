@@ -4,20 +4,17 @@ import brooklyn.entity.basic.Lifecycle;
 import brooklyn.location.Location;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.entity.Entity;
+import io.brooklyn.attributes.AttributeType;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.entity.PlatformComponent;
-
-import java.io.Serializable;
 
 public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends PlatformComponent {
 
-    public static final Attribute<Lifecycle> STATE = new Attribute<>("state");
+    public static final AttributeType<Lifecycle> STATE = new AttributeType<>("state");
 
-    public final BasicAttributeRef<String> runDir = newBasicAttributeRef("runDir");
-    public final BasicAttributeRef<Lifecycle> state = newBasicAttributeRef(STATE);
-    public final BasicAttributeRef<ActorRef> machine = newBasicAttributeRef("machine");
+    public final ReferenceAttribute<String> runDir = newReferenceAttribute("runDir");
+    public final ReferenceAttribute<Lifecycle> state = newReferenceAttribute(STATE);
+    public final ReferenceAttribute<ActorRef> machine = newReferenceAttribute("machine");
 
     private D softwareProcessDriver;
 

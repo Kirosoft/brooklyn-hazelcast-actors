@@ -4,8 +4,8 @@ package io.brooklyn.entity.machines;
 import brooklyn.location.Location;
 import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.attributes.ListAttributeRef;
+import io.brooklyn.attributes.ReferenceAttribute;
+import io.brooklyn.attributes.ListAttribute;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -27,8 +27,8 @@ import java.util.Map;
  */
 public class Machine extends Entity {
 
-    private final ListAttributeRef<ActorRef> softwareProcesses = newListAttributeRef("softwareProcesses", ActorRef.class);
-    private final BasicAttributeRef<Location> location = newBasicAttributeRef("location", Location.class);
+    private final ListAttribute<ActorRef> softwareProcesses = newListAttribute("softwareProcesses", ActorRef.class);
+    private final ReferenceAttribute<Location> location = newReferenceAttribute("location", Location.class);
 
     public void receive(StartMachine start) {
         location.set(start.location);

@@ -13,7 +13,7 @@ import com.hazelcast.core.IMap;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.activeobject.ActiveObjectActor;
 import io.brooklyn.activeobject.ActiveObjectMessage;
-import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -81,8 +81,8 @@ public class LocalManagementContext implements ManagementContext {
         return actorRuntime.spawnAndLink(caller, actorRecipe);
     }
 
-    public void subscribeToAttribute(ActorRef listener, ActorRef target, Attribute attribute) {
-        actorRuntime.send(listener, target, new Entity.Subscription(listener, attribute));
+    public void subscribeToAttribute(ActorRef listener, ActorRef target, AttributeType attributeType) {
+        actorRuntime.send(listener, target, new Entity.AttributeSubscription(listener, attributeType));
     }
 
     @Override

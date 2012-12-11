@@ -1,6 +1,6 @@
 package io.brooklyn.attributes;
 
-public interface ListAttributeRef<E> extends AttributeRef, Iterable<E> {
+public interface ListAttribute<E> extends Attribute, Iterable<E> {
 
     int size();
 

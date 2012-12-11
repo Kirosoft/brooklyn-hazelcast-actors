@@ -2,7 +2,7 @@ package io.brooklyn.entity.web;
 
 import brooklyn.location.PortRange;
 import brooklyn.location.basic.PortRanges;
-import io.brooklyn.attributes.Attribute;
+import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
 
 /**
@@ -15,10 +15,10 @@ import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
  */
 public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
 
-    public static final Attribute<PortRange> HTTP_PORT = new Attribute<>("httpPort", PortRanges.fromString("8800+"));
-    public static final Attribute<PortRange> SHUTDOWN_PORT = new Attribute<>("shutdownPort", PortRanges.fromString("9000+"));
-    public static final Attribute<PortRange> JMX_PORT = new Attribute<>("jmxPort", PortRanges.fromString("10000+"));
-    public static final Attribute<String> VERSION = new Attribute<>("version", "7.0.32");
+    public static final AttributeType<PortRange> HTTP_PORT = new AttributeType<>("httpPort", PortRanges.fromString("8800+"));
+    public static final AttributeType<PortRange> SHUTDOWN_PORT = new AttributeType<>("shutdownPort", PortRanges.fromString("9000+"));
+    public static final AttributeType<PortRange> JMX_PORT = new AttributeType<>("jmxPort", PortRanges.fromString("10000+"));
+    public static final AttributeType<String> VERSION = new AttributeType<>("version", "7.0.32");
 
     public TomcatConfig() {
         super(Tomcat.class);

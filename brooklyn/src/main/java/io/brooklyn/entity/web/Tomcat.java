@@ -2,10 +2,9 @@ package io.brooklyn.entity.web;
 
 import brooklyn.entity.basic.Lifecycle;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.attributes.LongAttributeRef;
-import io.brooklyn.attributes.PortAttributeRef;
+import io.brooklyn.attributes.*;
+import io.brooklyn.attributes.ReferenceAttribute;
+import io.brooklyn.attributes.LongAttribute;
 import io.brooklyn.entity.Stop;
 import io.brooklyn.entity.enrichers.RollingTimeWindowMeanEnricher;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -36,20 +35,20 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
     private static final Logger log = LoggerFactory.getLogger(Tomcat.class);
 
 
-    public static final Attribute<Long> USED_HEAP = new Attribute<>("usedHeap", 0L);
-    public static final Attribute<Double> AVERAGE_USED_HEAP = new Attribute<>("averageUsedHeap", 0d);
-    public static final Attribute<Long> MAX_HEAP = new Attribute<>("maxHeap", 0L);
+    public static final AttributeType<Long> USED_HEAP = new AttributeType<>("usedHeap", 0L);
+    public static final AttributeType<Double> AVERAGE_USED_HEAP = new AttributeType<>("averageUsedHeap", 0d);
+    public static final AttributeType<Long> MAX_HEAP = new AttributeType<>("maxHeap", 0L);
 
     //these attribute references are 'handy', but not mandatory. They read and write to a AttributeMap which is just
     //a map (backed up by hazelcast). This map can be accessed directly either using strings or attributes.
     //So these references are here to demonstrate an alternative way of accessing attributes.
-    public final PortAttributeRef httPort = newPortAttributeRef(TomcatConfig.HTTP_PORT);
-    public final PortAttributeRef shutdownPort = newPortAttributeRef(TomcatConfig.SHUTDOWN_PORT);
-    public final PortAttributeRef jmxPort = newPortAttributeRef(TomcatConfig.JMX_PORT);
+    public final PortAttribute httPort = newPortAttributeRef(TomcatConfig.HTTP_PORT);
+    public final PortAttribute shutdownPort = newPortAttributeRef(TomcatConfig.SHUTDOWN_PORT);
+    public final PortAttribute jmxPort = newPortAttributeRef(TomcatConfig.JMX_PORT);
 
-    public final LongAttributeRef usedHeap = newLongAttributeRef(USED_HEAP);
-    public final LongAttributeRef maxHeap = newLongAttributeRef(MAX_HEAP);
-    public final BasicAttributeRef<String> version = newBasicAttributeRef(TomcatConfig.VERSION);
+    public final LongAttribute usedHeap = newLongAttribute(USED_HEAP);
+    public final LongAttribute maxHeap = newLongAttribute(MAX_HEAP);
+    public final ReferenceAttribute<String> version = newReferenceAttribute(TomcatConfig.VERSION);
 
     public final JmxConnection jmxConnection = new JmxConnection();
 
@@ -150,7 +149,6 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             maxHeap.set((Long) heapData.get("max"));
         }
     }
-
 
     public static class JmxUpdate extends AbstractMessage {}
 

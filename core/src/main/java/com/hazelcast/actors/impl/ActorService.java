@@ -173,7 +173,9 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         public ActorRef createActor(final ActorRecipe recipe, final Object partitionKey, final int partitionId) throws Exception {
-            final ActorRef ref = new ActorRef(UUID.randomUUID().toString(), partitionKey, partitionId);
+            //todo: this id function needs to be improved, but for the time being is good enough
+            String id = recipe.getActorClass().getSimpleName()+UUID.randomUUID().toString().replaceAll("-","").substring(0,6);
+            final ActorRef ref = new ActorRef(id, partitionKey, partitionId);
 
             //we need to offload the actual creation/activation of the actor, since in Hazelcast it isn't allowed to call
             //a Hazelcast structure from the spi thread.

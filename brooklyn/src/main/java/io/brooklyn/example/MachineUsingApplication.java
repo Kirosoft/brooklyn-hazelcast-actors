@@ -13,7 +13,7 @@ import com.hazelcast.config.Services;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
-import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.application.ApplicationConfig;
 import io.brooklyn.entity.machines.Machine;
@@ -25,8 +25,8 @@ import java.util.Map;
 
 public class MachineUsingApplication extends Application {
 
-    private final BasicAttributeRef<ActorRef> machine1 = newBasicAttributeRef("machine1", ActorRef.class);
-    private final BasicAttributeRef<ActorRef> tomcat = newBasicAttributeRef("tomcat", ActorRef.class);
+    private final ReferenceAttribute<ActorRef> machine1 = newReferenceAttribute("machine1", ActorRef.class);
+    private final ReferenceAttribute<ActorRef> tomcat = newReferenceAttribute("tomcat", ActorRef.class);
 
     public void receive(SoftwareProcess.Start start) {
         Machine.MachineConfig machineConfig = new Machine.MachineConfig();

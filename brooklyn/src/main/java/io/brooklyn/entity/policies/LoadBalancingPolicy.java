@@ -1,8 +1,8 @@
 package io.brooklyn.entity.policies;
 
 import com.hazelcast.actors.api.ActorRef;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.attributes.BasicAttributeRef;
+import io.brooklyn.attributes.AttributeType;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.attributes.SensorEvent;
 import io.brooklyn.entity.EntityConfig;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ public class LoadBalancingPolicy extends Policy {
     private static final Logger log = LoggerFactory.getLogger(LoadBalancingPolicy.class);
 
 
-    public final BasicAttributeRef<ActorRef> cluster = newBasicAttributeRef(Config.CLUSTER);
+    public final ReferenceAttribute<ActorRef> cluster = newReferenceAttribute(Config.CLUSTER);
 
     private final Map<ActorRef, Double> performanceMap = new HashMap<>();
 
@@ -34,7 +34,7 @@ public class LoadBalancingPolicy extends Policy {
 
     public static class Config extends EntityConfig {
 
-        public static final Attribute<ActorRef> CLUSTER = new Attribute<>("cluster");
+        public static final AttributeType<ActorRef> CLUSTER = new AttributeType<>("cluster");
 
         public Config() {
             super(LoadBalancingPolicy.class);

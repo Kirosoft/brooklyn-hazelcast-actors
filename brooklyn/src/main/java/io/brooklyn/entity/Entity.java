@@ -7,12 +7,7 @@ import com.hazelcast.actors.api.Injected;
 import com.hazelcast.actors.api.MessageDeliveryFailure;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.ManagementContext;
-import io.brooklyn.attributes.Attribute;
-import io.brooklyn.attributes.AttributeMap;
-import io.brooklyn.attributes.BasicAttributeRef;
-import io.brooklyn.attributes.IntAttributeRef;
-import io.brooklyn.attributes.ListAttributeRef;
-import io.brooklyn.attributes.LongAttributeRef;
+import io.brooklyn.attributes.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,17 +46,17 @@ public abstract class Entity extends DispatchingActor {
 
     /**
      * Spawns a new Entity and links it to the current Entity.
-     *
+     * <p/>
      * Linking means that the current entity will receive the exit event of the newly spawned entity.
      *
-     * @param config  the configuration for the entity.
+     * @param config the configuration for the entity.
      * @return the ActorRef of the created Entity.
      */
     public final ActorRef spawnAndLink(EntityConfig config) {
         return getManagementContext().spawnAndLink(self(), config);
     }
 
-    public final void send(BasicAttributeRef<ActorRef> destination, Object msg) {
+    public final void send(ReferenceAttribute<ActorRef> destination, Object msg) {
         send(destination.get(), msg);
     }
 
@@ -73,59 +68,73 @@ public abstract class Entity extends DispatchingActor {
         return managementContext;
     }
 
-    public final <E> ListAttributeRef<E> newListAttributeRef(String name, Class<E> type) {
-        return newListAttributeRef(new Attribute<E>(name));
+    public final RelationsAttribute newRelationsAttribute(String name) {
+        return attributeMap.newRelationsAttribute(new AttributeType(name));
     }
 
-    public final <E> ListAttributeRef<E> newListAttributeRef(Attribute<E> attribute) {
-        return attributeMap.newListAttributeRef(attribute);
+    //TODO: type is not used.
+    public final <E> ListAttribute<E> newListAttribute(String name, Class<E> type) {
+        return newListAttribute(new AttributeType<E>(name));
     }
 
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(String name, Class<E> clazz) {
-        return newBasicAttributeRef(new Attribute<E>(name));
+    public final <E> ListAttribute<E> newListAttribute(AttributeType<E> attributeType) {
+        return attributeMap.newListAttribute(attributeType);
     }
 
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(String name, E defaultValue) {
-        return newBasicAttributeRef(new Attribute<E>(name, defaultValue));
+    //TODO: clazz is not used.
+    public final <E> ReferenceAttribute<E> newReferenceAttribute(String name, Class<E> clazz) {
+        return newReferenceAttribute(new AttributeType<E>(name));
     }
 
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(Attribute<E> attribute) {
-        return attributeMap.newBasicAttributeRef(attribute);
+    public final <E> ReferenceAttribute<E> newReferenceAttribute(String name, E defaultValue) {
+        return newReferenceAttribute(new AttributeType<>(name, defaultValue));
     }
 
-    public final <E> BasicAttributeRef<E> newBasicAttributeRef(String name) {
-        return attributeMap.newBasicAttributeRef(new Attribute<E>(name));
+    public final <E> ReferenceAttribute<E> newReferenceAttribute(AttributeType<E> attributeType) {
+        return attributeMap.newReferenceAttribute(attributeType);
     }
 
-    public final IntAttributeRef newIntAttributeRef(Attribute<Integer> attribute) {
-        return attributeMap.newIntAttributeRef(attribute);
+    public final <E> ReferenceAttribute<E> newReferenceAttribute(String name) {
+        return attributeMap.newReferenceAttribute(new AttributeType<E>(name));
     }
 
-    public final IntAttributeRef newIntAttributeRef(String name, int defaultValue) {
-        return attributeMap.newIntAttributeRef(new Attribute<>(name, defaultValue));
+    public final IntAttribute newIntAttribute(AttributeType<Integer> attributeType) {
+        return attributeMap.newIntAttribute(attributeType);
     }
 
-    public final LongAttributeRef newLongAttributeRef(Attribute<Long> attribute) {
-        return attributeMap.newLongAttributeRef(attribute);
+    public final IntAttribute newIntAttribute(String name, int defaultValue) {
+        return attributeMap.newIntAttribute(new AttributeType<>(name, defaultValue));
     }
 
-    public final LongAttributeRef newLongAttributeRef(String name, long defaultValue) {
-        return attributeMap.newLongAttributeRef(new Attribute<>(name, defaultValue));
+    public final LongAttribute newLongAttribute(AttributeType<Long> attributeType) {
+        return attributeMap.newLongAttribute(attributeType);
     }
 
-    public void receive(Subscription subscription) {
-        if (log.isDebugEnabled()) log.debug(self() + ":Entity:" + subscription);
+    public final LongAttribute newLongAttribute(String name, long defaultValue) {
+        return attributeMap.newLongAttribute(new AttributeType<>(name, defaultValue));
+    }
+
+    public void receive(AttributeSubscription subscription) {
+        if (log.isErrorEnabled()) log.error(self() + ":Entity:" + subscription);
         attributeMap.subscribe(subscription.attributeName, subscription.subscriber);
+    }
+
+    public void receive(RelationsAttributeSubscription subscription) {
+        if (log.isErrorEnabled()) log.error(self() + ":Entity:" + subscription);
+
+        //todo: this code is nasty:
+        String relationAttributeName = subscription.relationAttributeName;
+        AttributeType attributeType = new AttributeType<RelationsAttribute>(relationAttributeName);
+        attributeMap.newRelationsAttribute(attributeType).registerOnChildren(subscription.attributeType, subscription.subscriber);
     }
 
     public void receive(AttributePublication publication) {
         if (log.isDebugEnabled()) log.debug(self() + ":Entity:" + publication);
-
-        attributeMap.setAttribute(publication.attribute, publication.value);
+        attributeMap.setAttribute(publication.attributeType, publication.value);
     }
 
-    public void receive(MessageDeliveryFailure e){
-        log.debug(""+e);
+    public void receive(MessageDeliveryFailure e) {
+        log.debug("" + e);
     }
 
     /**
@@ -140,29 +149,30 @@ public abstract class Entity extends DispatchingActor {
         getActorRuntime().notify(self(), msg, delayMs);
     }
 
-    public final void subscribeToAttribute(BasicAttributeRef<ActorRef> subscriber, ActorRef target, Attribute attribute) {
-        getManagementContext().subscribeToAttribute(subscriber.get(), target, attribute);
+    public final void subscribeToAttribute(ReferenceAttribute<ActorRef> subscriber, ActorRef target, AttributeType attributeType) {
+        getManagementContext().subscribeToAttribute(subscriber.get(), target, attributeType);
     }
 
-    public final void subscribeToAttribute(ActorRef subscriber, ActorRef target, Attribute attribute) {
-        getManagementContext().subscribeToAttribute(subscriber, target, attribute);
+    public final void subscribeToAttribute(ActorRef subscriber, ActorRef target, AttributeType attributeType) {
+        getManagementContext().subscribeToAttribute(subscriber, target, attributeType);
     }
 
+    //message when a publication needs to be done to an attribute. This is useful for external mechanisms like enrichers
     public static class AttributePublication<E> extends AbstractMessage {
-        private final Attribute<E> attribute;
+        private final AttributeType<E> attributeType;
         private final E value;
 
-        public AttributePublication(BasicAttributeRef<Attribute<E>> attributeRef, E value) {
+        public AttributePublication(ReferenceAttribute<AttributeType<E>> attributeRef, E value) {
             this(attributeRef.get(), value);
         }
 
-        public AttributePublication(Attribute<E> attribute, E value) {
-            this.attribute = attribute;
+        public AttributePublication(AttributeType<E> attributeType, E value) {
+            this.attributeType = attributeType;
             this.value = value;
         }
 
-        public Attribute<E> getAttribute() {
-            return attribute;
+        public AttributeType<E> getAttributeType() {
+            return attributeType;
         }
 
         public E getValue() {
@@ -170,17 +180,38 @@ public abstract class Entity extends DispatchingActor {
         }
     }
 
-    public static class Subscription extends AbstractMessage {
+    //This message indicates we want to listen to a certain attribute.
+    public static class AttributeSubscription extends AbstractMessage {
         private final String attributeName;
         private final ActorRef subscriber;
 
-        public Subscription(ActorRef subscriber, String attributeName) {
+        public AttributeSubscription(ActorRef subscriber, String attributeName) {
             this.attributeName = notNull(attributeName, "attributeName");
             this.subscriber = notNull(subscriber, "subscriber");
         }
 
-        public Subscription(ActorRef subscriber, Attribute attribute) {
-            this(subscriber, attribute.getName());
+        public AttributeSubscription(ActorRef subscriber, AttributeType attributeType) {
+            this(subscriber, attributeType.getName());
+        }
+    }
+
+    //This message indicates that we want to be subscribed to an attribute of the children of some relationsattribute.
+    //E.g. when we would have a relation 'webapps' and each entity has an heap attribute, then using this subscription
+    //we can automatically subscribe to all webapps their heap attribute. Also for newly added relations the subscription
+    //will automatically be applied.
+    public static class RelationsAttributeSubscription extends AbstractMessage {
+        public final String relationAttributeName;
+        public final AttributeType attributeType;
+        public final ActorRef subscriber;
+
+        public RelationsAttributeSubscription(String relationAttributeName, ActorRef subscriber, AttributeType attributeType) {
+            this.relationAttributeName = notNull(relationAttributeName, "relationAttributeName");
+            this.attributeType = notNull(attributeType, "attribute");
+            this.subscriber = notNull(subscriber, "subscriber");
+        }
+
+        public RelationsAttributeSubscription(String relationAttributeName, ReferenceAttribute<ActorRef> subscribers, AttributeType attributeType) {
+            this(relationAttributeName, subscribers.get(), attributeType);
         }
     }
 }
