@@ -6,6 +6,7 @@ import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.activeobject.ActiveObject;
 import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 
@@ -35,19 +36,21 @@ public interface ManagementContext {
      */
     <A extends ActiveObject> A spawnActiveObject(Class<A> activeObjectClass, Object partitionKey, Map<String, Object> config);
 
-    ActorRef spawnAndLink(ActorRef parent, EntityConfig config);
+    EntityReference spawnAndLink(EntityReference parent, EntityConfig config);
 
-    ActorRef spawn(EntityConfig config);
+    EntityReference spawn(EntityConfig config);
 
-    void subscribeToAttribute(ActorRef listener, ActorRef target, AttributeType attributeType);
+    void send(EntityReference destination, Object msg);
 
-    void registerInNamespace(String nameSpace, ActorRef ref);
+    void subscribeToAttribute(EntityReference listener, EntityReference target, AttributeType attributeType);
 
-    void unregisterFromNamespace(String nameSpace, ActorRef ref);
+    void registerInNamespace(String nameSpace, EntityReference ref);
 
-    void subscribeToNamespace(String nameSpace, ActorRef ref);
+    void unregisterFromNamespace(String nameSpace, EntityReference ref);
 
-    Set<ActorRef> getFromNameSpace(String nameSpace);
+    void subscribeToNamespace(String nameSpace, EntityReference ref);
+
+    Set<EntityReference> getFromNameSpace(String nameSpace);
 
     SoftwareProcessDriver newDriver(SoftwareProcess entity);
 

@@ -1,10 +1,8 @@
 package io.brooklyn.entity.enrichers;
 
-import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.attributes.*;
-import io.brooklyn.attributes.ReferenceAttribute;
-import io.brooklyn.attributes.ListAttribute;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -13,31 +11,21 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
 
     public static final AttributeType<AttributeType<Double>> TARGET_ATTRIBUTE_TYPE = new AttributeType<>("targetAttribute");
     public static final AttributeType<AttributeType<Number>> SOURCE_ATTRIBUTE_TYPE = new AttributeType<>("sourceAttribute");
-    public static final AttributeType<ActorRef> SOURCE = new AttributeType<>("source");
-
-    public final ReferenceAttribute<AttributeType<Double>> targetAttribute = newReferenceAttribute(TARGET_ATTRIBUTE_TYPE);
-    public final ReferenceAttribute<AttributeType<Number>> sourceAttribute = newReferenceAttribute(SOURCE_ATTRIBUTE_TYPE);
-    public final ReferenceAttribute<ActorRef> source = newReferenceAttribute(SOURCE);
-
-    public static class ConfidenceQualifiedNumber implements Serializable {
-        final Double value;
-        final double confidence;
-
-        public ConfidenceQualifiedNumber(Double value, double confidence) {
-            this.value = value;
-            this.confidence = confidence;
-        }
-    }
+    public static final AttributeType<EntityReference> SOURCE = new AttributeType<>("source");
 
     private final ListAttribute<Double> values = newListAttribute("values", Double.class);
     private final ListAttribute<Long> timestamps = newListAttribute("timestamps", Long.class);
     private final ReferenceAttribute<ConfidenceQualifiedNumber> lastAverage = newReferenceAttribute("lastAverage", new ConfidenceQualifiedNumber(0d, 0d));
-    private final ReferenceAttribute<Long> timePeriod = newReferenceAttribute("timePeriod", 10 * 1000L);
+    private final LongAttribute timePeriod = newLongAttribute("timePeriod", 10 * 1000L);
+    private final ReferenceAttribute<AttributeType<Double>> targetAttribute = newReferenceAttribute(TARGET_ATTRIBUTE_TYPE);
+    private final ReferenceAttribute<AttributeType<Number>> sourceAttribute = newReferenceAttribute(SOURCE_ATTRIBUTE_TYPE);
+    private final ReferenceAttribute<EntityReference> source = newReferenceAttribute(SOURCE);
 
     @Override
     public void onActivation() throws Exception {
         super.onActivation();
 
+        //todo: cleanup for the 'toActorRef'
         subscribeToAttribute(self(), source.get(), sourceAttribute.get());
     }
 
@@ -117,9 +105,19 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
             return this;
         }
 
-        public Config source(ActorRef source) {
+        public Config source(EntityReference source) {
             addProperty(SOURCE, source);
             return this;
+        }
+    }
+
+    private static class ConfidenceQualifiedNumber implements Serializable {
+        final Double value;
+        final double confidence;
+
+        public ConfidenceQualifiedNumber(Double value, double confidence) {
+            this.value = value;
+            this.confidence = confidence;
         }
     }
 }

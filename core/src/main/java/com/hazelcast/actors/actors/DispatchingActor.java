@@ -39,7 +39,9 @@ import static java.lang.reflect.Modifier.isStatic;
  *
  * @author Peter Veentjer.
  */
-public class DispatchingActor extends AbstractActor {
+public class DispatchingActor extends AbstractActor implements MissingMethodHandler<ActorRef>{
+
+    private final static MethodDispatcher dispatcher = new MethodDispatcher(ActorRef.class);
 
     /**
      * Override this method if you want to execute a certain action when the message is not handled
@@ -69,116 +71,6 @@ public class DispatchingActor extends AbstractActor {
                             "If you want to receive all messages, use an AbstractActor", getClass().getName()));
         }
 
-        Method receiveMethod = findReceiveMethod(getClass(), msg.getClass());
-        if (receiveMethod == null) {
-            onUnhandledMessage(msg, sender);
-            return;
-        }
-
-        try {
-            if (receiveMethod.getParameterTypes().length == 2) {
-                receiveMethod.invoke(this, msg, sender);
-            } else {
-                receiveMethod.invoke(this, msg);
-            }
-        } catch (IllegalAccessException e) {
-            //This will not be thrown since we make the receiveMethod accessible
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw Util.handle(e);
-        }
-    }
-
-    private final static ConcurrentMap<Class<Actor>, ConcurrentMap<Class, Method>> receiveMethodMap = new ConcurrentHashMap<>();
-
-    public static Method findReceiveMethod(Class actorClass, Class messageClass) {
-        ConcurrentMap<Class, Method> actorReceiveMethods = receiveMethodMap.get(actorClass);
-        if (actorReceiveMethods == null) {
-            actorReceiveMethods = new ConcurrentHashMap<>();
-            ConcurrentMap<Class, Method> found = receiveMethodMap.putIfAbsent(actorClass, actorReceiveMethods);
-            actorReceiveMethods = found == null ? actorReceiveMethods : found;
-        }
-
-        Method method = actorReceiveMethods.get(messageClass);
-        if (method != null) {
-            return method;
-        }
-
-
-        method = findBestMatch(actorClass, messageClass);
-        if (method != null) {
-            actorReceiveMethods.put(messageClass, method);
-        }
-
-        return method;
-    }
-
-    private static Method findBestMatch(Class actorClass, Class messageClass) {
-        Class clazz = actorClass;
-        do {
-            Method bestMatch = null;
-            for (Method method : clazz.getDeclaredMethods()) {
-                if (!method.getName().equals("receive")) {
-                    continue;
-                }
-
-                Class<?>[] parameterTypes = method.getParameterTypes();
-                if (parameterTypes.length == 0 || parameterTypes.length > 2) {
-                    //the method is not usable since it doesn't have the right number of arguments.
-                    continue;
-                }
-
-                Class receiveMessageType = parameterTypes[0];
-                if (receiveMessageType.equals(messageClass)) {
-                    //we have an exact match, so we can stop searching.
-                    bestMatch = method;
-                    break;
-                }
-
-                if (receiveMessageType.isAssignableFrom(messageClass)) {
-                    if (bestMatch == null) {
-                        bestMatch = method;
-                    } else {
-                        Class<?> bestReceiveMessageType = bestMatch.getParameterTypes()[0];
-                        if (bestReceiveMessageType.isAssignableFrom(receiveMessageType)) {
-                            bestMatch = method;
-                        } else if (!receiveMessageType.isAssignableFrom(bestReceiveMessageType)) {
-                            throw new UnprocessedException("Ambiguous " + bestMatch + " " + method + " for message " + messageClass);
-                        }
-                    }
-                }
-            }
-
-            if (bestMatch != null) {
-                checkValid(bestMatch);
-                return bestMatch;
-            }
-
-            clazz = clazz.getSuperclass();
-        } while (!DispatchingActor.class.equals(clazz));
-
-        return null;
-    }
-
-    private static void checkValid(Method receiveMethod) {
-        if (receiveMethod.getParameterTypes().length == 2) {
-            Class actorRefType = receiveMethod.getParameterTypes()[1];
-            if (!actorRefType.isAssignableFrom(ActorRef.class)) {
-                throw new UnprocessedException(format("Receive method '%s' should have '%s' as second argument.",
-                        receiveMethod, ActorRef.class.getName()));
-            }
-        }
-
-        if (!receiveMethod.getReturnType().equals(Void.TYPE)) {
-            throw new UnprocessedException(format("Receive method '%s' can't have a return value.", receiveMethod));
-        }
-
-        if (isStatic(receiveMethod.getModifiers())) {
-            throw new UnprocessedException(format("Receive method '%s' can't be static.", receiveMethod));
-        }
-
-        if (isAbstract(receiveMethod.getModifiers())) {
-            throw new UnprocessedException(format("Receive method '%s' can't be abstract.", receiveMethod));
-        }
+        dispatcher.dispatch(this,msg,sender,this);
     }
 }

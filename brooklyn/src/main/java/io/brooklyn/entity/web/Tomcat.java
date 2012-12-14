@@ -2,9 +2,10 @@ package io.brooklyn.entity.web;
 
 import brooklyn.entity.basic.Lifecycle;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.attributes.*;
-import io.brooklyn.attributes.ReferenceAttribute;
+import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.attributes.LongAttribute;
+import io.brooklyn.attributes.PortAttribute;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.entity.Stop;
 import io.brooklyn.entity.enrichers.RollingTimeWindowMeanEnricher;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -118,7 +119,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             e.printStackTrace();
             state.set(Lifecycle.ON_FIRE);
         }
-        if (log.isDebugEnabled())log.debug(self() + ":Tomcat:Stop completed");
+        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Stop completed");
     }
 
     public void receive(JmxUpdate update) {
@@ -150,9 +151,11 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
         }
     }
 
-    public static class JmxUpdate extends AbstractMessage {}
+    public static class JmxUpdate extends AbstractMessage {
+    }
 
-    public static class Undeployment extends AbstractMessage {}
+    public static class Undeployment extends AbstractMessage {
+    }
 
     public static class Deployment extends AbstractMessage {
         public final String url;

@@ -2,7 +2,6 @@ package io.brooklyn.example;
 
 import brooklyn.config.BrooklynProperties;
 import brooklyn.location.basic.SshMachineLocation;
-import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
@@ -14,6 +13,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 
 import java.net.InetAddress;
@@ -47,7 +47,7 @@ public class Main {
         SshMachineLocation location = new SshMachineLocation(props);
 
         //we spawn a new Application which will not be linked to any other actor; it will be a 'root' entity.
-        ActorRef application = managementContext.spawn(new EntityConfig(ExampleWebApplication.class));
-        actorRuntime.send(application, new SoftwareProcess.Start(location));
+        EntityReference application = managementContext.spawn(new EntityConfig(ExampleWebApplication.class));
+        managementContext.send(application, new SoftwareProcess.Start(location));
     }
 }

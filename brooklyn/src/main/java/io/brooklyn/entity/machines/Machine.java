@@ -2,12 +2,12 @@ package io.brooklyn.entity.machines;
 
 
 import brooklyn.location.Location;
-import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
-import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.attributes.ListAttribute;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
 
@@ -27,7 +27,7 @@ import java.util.Map;
  */
 public class Machine extends Entity {
 
-    private final ListAttribute<ActorRef> softwareProcesses = newListAttribute("softwareProcesses", ActorRef.class);
+    private final ListAttribute<EntityReference> softwareProcesses = newListAttribute("softwareProcesses", EntityReference.class);
     private final ReferenceAttribute<Location> location = newReferenceAttribute("location", Location.class);
 
     public void receive(StartMachine start) {
@@ -43,7 +43,7 @@ public class Machine extends Entity {
     }
 
     public void receive(StartSoftwareProcess startSoftwareProcess) {
-        ActorRef process = spawnAndLink(startSoftwareProcess.softwareProcessConfig);
+        EntityReference process = spawnAndLink(startSoftwareProcess.softwareProcessConfig);
         softwareProcesses.add(process);
         //todo: machine in the future will be passed
         send(process, new SoftwareProcess.Start(location.get()));
@@ -57,7 +57,7 @@ public class Machine extends Entity {
         }
     }
 
-     public static class MachineConfig extends EntityConfig {
+    public static class MachineConfig extends EntityConfig {
 
         public MachineConfig() {
             super(Machine.class);

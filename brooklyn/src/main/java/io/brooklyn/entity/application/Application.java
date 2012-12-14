@@ -6,7 +6,7 @@ import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 
 public abstract class Application extends PlatformComponent {
 
-     //On start we are going to start ourselves.
+    //On start we are going to start ourselves.
     public void receive(SoftwareProcess.Start start) {
         getManagementContext().registerInNamespace("Applications", self());
     }
@@ -15,6 +15,4 @@ public abstract class Application extends PlatformComponent {
     public void receive(Stop start) {
         getManagementContext().unregisterFromNamespace("Application", self());
     }
-
-
 }

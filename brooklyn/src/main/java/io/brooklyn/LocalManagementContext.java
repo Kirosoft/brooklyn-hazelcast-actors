@@ -15,7 +15,9 @@ import io.brooklyn.activeobject.ActiveObjectActor;
 import io.brooklyn.activeobject.ActiveObjectMessage;
 import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.entity.Entity;
+import io.brooklyn.entity.EntityActor;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
 import io.brooklyn.entity.softwareprocess.SoftwareProcessDriver;
 import net.sf.cglib.proxy.Enhancer;
@@ -38,12 +40,12 @@ public class LocalManagementContext implements ManagementContext {
 
     private HazelcastInstance hzInstance;
     //todo: should use a MultiMap as soon as available again in Hazelcast 3.
-    private IMap<String, Set<ActorRef>> namespaceMap;
+    private IMap<String, Set<EntityReference>> namespaceMap;
 
     private ExecutorService distributedExecutorService;
     private ExecutorService localExecutor;
     private ActorRuntime actorRuntime;
-    private IMap<String, Set<ActorRef>> namespaceSubscribersMap;
+    private IMap<String, Set<EntityReference>> namespaceSubscribersMap;
     private LocationRegistry locationRegistry;
 
     public void init(HazelcastInstance hzInstance, ActorRuntime actorRuntime) {
@@ -61,28 +63,34 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public ActorRef spawn(EntityConfig config) {
+    public void send(EntityReference destination, Object msg) {
+         actorRuntime.send(destination.toActorRef(),msg);
+    }
+
+    @Override
+    public EntityReference spawn(EntityConfig config) {
         return spawn(null, config);
     }
 
     @Override
-    public ActorRef spawnAndLink(ActorRef caller, EntityConfig config) {
+    public EntityReference spawnAndLink(EntityReference caller, EntityConfig config) {
         return spawn(notNull(caller,"caller"), config);
     }
 
-    private ActorRef spawn(ActorRef caller, EntityConfig entityConfig) {
+    private EntityReference spawn(EntityReference caller, EntityConfig entityConfig) {
         notNull(entityConfig, "entityConfig");
 
         int partitionId = 0;//todo: we need to fix the partition id.
         ActorRecipe actorRecipe = new ActorRecipe(
-                entityConfig.getEntityClass(),
+                EntityActor.class,
                 partitionId,
                 MutableMap.map("entityConfig", entityConfig));
-        return actorRuntime.spawnAndLink(caller, actorRecipe);
+        ActorRef actorRef = actorRuntime.spawnAndLink(caller == null?null:caller.toActorRef(), actorRecipe);
+        return new EntityReference(actorRef);
     }
 
-    public void subscribeToAttribute(ActorRef listener, ActorRef target, AttributeType attributeType) {
-        actorRuntime.send(listener, target, new Entity.AttributeSubscription(listener, attributeType));
+    public void subscribeToAttribute(EntityReference listener, EntityReference target, AttributeType attributeType) {
+        actorRuntime.send(listener.toActorRef(), target.toActorRef(), new Entity.AttributeSubscription(listener, attributeType));
     }
 
     @Override
@@ -125,13 +133,13 @@ public class LocalManagementContext implements ManagementContext {
 
 
     @Override
-    public Set<ActorRef> getFromNameSpace(String nameSpace) {
+    public Set<EntityReference> getFromNameSpace(String nameSpace) {
         notNull(nameSpace, "nameSpace");
 
         namespaceMap.lock(nameSpace);
         try {
-            Set<ActorRef> refs = namespaceMap.get(nameSpace);
-            Set<ActorRef> result = new HashSet<>();
+            Set<EntityReference> refs = namespaceMap.get(nameSpace);
+            Set<EntityReference> result = new HashSet<>();
             if (refs != null) {
                 result.addAll(refs);
             }
@@ -142,13 +150,13 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public void unregisterFromNamespace(String nameSpace, ActorRef ref) {
+    public void unregisterFromNamespace(String nameSpace, EntityReference ref) {
         notNull(nameSpace, "nameSpace");
         notNull(ref, "ref");
 
         namespaceMap.lock(nameSpace);
         try {
-            Set<ActorRef> refs = namespaceMap.get(nameSpace);
+            Set<EntityReference> refs = namespaceMap.get(nameSpace);
             if (refs == null) {
                 return;
             }
@@ -162,13 +170,13 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public void registerInNamespace(String nameSpace, ActorRef ref) {
+    public void registerInNamespace(String nameSpace, EntityReference ref) {
         notNull(nameSpace, "nameSpace");
         notNull(ref, "ref");
 
         namespaceMap.lock(nameSpace);
         try {
-            Set<ActorRef> refs = namespaceMap.get(nameSpace);
+            Set<EntityReference> refs = namespaceMap.get(nameSpace);
             if (refs == null) {
                 refs = new HashSet<>();
             }
@@ -184,13 +192,13 @@ public class LocalManagementContext implements ManagementContext {
 
         namespaceSubscribersMap.lock(nameSpace);
         try {
-            Set<ActorRef> subscribers = namespaceMap.get(nameSpace);
+            Set<EntityReference> subscribers = namespaceMap.get(nameSpace);
             if (subscribers == null) {
                 return;
             }
 
-            for (ActorRef subscriber : subscribers) {
-                actorRuntime.send(subscriber, new NamespaceChange(ref, true, nameSpace));
+            for (EntityReference subscriber : subscribers) {
+                actorRuntime.send(subscriber.toActorRef(), new NamespaceChange(ref, true, nameSpace));
             }
         } finally {
             namespaceSubscribersMap.unlock(nameSpace);
@@ -199,13 +207,13 @@ public class LocalManagementContext implements ManagementContext {
     }
 
     @Override
-    public void subscribeToNamespace(String nameSpace, ActorRef subscriber) {
+    public void subscribeToNamespace(String nameSpace, EntityReference subscriber) {
         notNull(nameSpace, "nameSpace");
         notNull(subscriber, "subscriber");
 
         namespaceSubscribersMap.lock(nameSpace);
         try {
-            Set<ActorRef> subscribers = namespaceSubscribersMap.get(nameSpace);
+            Set<EntityReference> subscribers = namespaceSubscribersMap.get(nameSpace);
             if (subscribers == null) {
                 return;
             }

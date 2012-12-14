@@ -1,18 +1,20 @@
 package io.brooklyn.attributes;
 
-import com.hazelcast.actors.api.ActorRef;
+import io.brooklyn.entity.EntityReference;
 
 import java.io.Serializable;
 
-
+/**
+ * An Event that indicates a change.
+ */
 public class SensorEvent implements Serializable {
-    private final ActorRef source;
+    private final EntityReference source;
     private final Object oldValue;
     private final Object newValue;
     private final String name;
     private final long timestamp;
 
-    public SensorEvent(ActorRef source, String name, Object oldValue, Object newValue) {
+    public SensorEvent(EntityReference source, String name, Object oldValue, Object newValue) {
         this.newValue = newValue;
         this.name = name;
         this.source = source;
@@ -32,7 +34,7 @@ public class SensorEvent implements Serializable {
         return oldValue;
     }
 
-    public ActorRef getSource() {
+    public EntityReference getSource() {
         return source;
     }
 

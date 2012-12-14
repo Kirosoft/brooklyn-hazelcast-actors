@@ -2,7 +2,6 @@ package io.brooklyn.example;
 
 import brooklyn.config.BrooklynProperties;
 import brooklyn.location.basic.SshMachineLocation;
-import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
@@ -14,6 +13,7 @@ import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import io.brooklyn.LocalManagementContext;
 import io.brooklyn.attributes.ReferenceAttribute;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.application.Application;
 import io.brooklyn.entity.application.ApplicationConfig;
 import io.brooklyn.entity.machines.Machine;
@@ -25,8 +25,8 @@ import java.util.Map;
 
 public class MachineUsingApplication extends Application {
 
-    private final ReferenceAttribute<ActorRef> machine1 = newReferenceAttribute("machine1", ActorRef.class);
-    private final ReferenceAttribute<ActorRef> tomcat = newReferenceAttribute("tomcat", ActorRef.class);
+    private final ReferenceAttribute<EntityReference> machine1 = newReferenceAttribute("machine1", EntityReference.class);
+    private final ReferenceAttribute<EntityReference> tomcat = newReferenceAttribute("tomcat", EntityReference.class);
 
     public void receive(SoftwareProcess.Start start) {
         Machine.MachineConfig machineConfig = new Machine.MachineConfig();
@@ -64,7 +64,7 @@ public class MachineUsingApplication extends Application {
         SshMachineLocation location = new SshMachineLocation(props);
 
         ApplicationConfig applicationConfig = new ApplicationConfig(Application.class);
-        ActorRef application = managementContext.spawn(applicationConfig);
-        actorRuntime.send(application, new SoftwareProcess.Start(location));
+        EntityReference application = managementContext.spawn(applicationConfig);
+        managementContext.send(application, new SoftwareProcess.Start(location));
     }
 }

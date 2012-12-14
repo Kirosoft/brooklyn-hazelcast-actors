@@ -1,10 +1,7 @@
 package io.brooklyn.entity;
 
-import com.hazelcast.actors.actors.DispatchingActor;
-import com.hazelcast.actors.api.ActorRecipe;
-import com.hazelcast.actors.api.ActorRef;
-import com.hazelcast.actors.api.Injected;
-import com.hazelcast.actors.api.MessageDeliveryFailure;
+import com.hazelcast.actors.api.*;
+import com.hazelcast.actors.api.exceptions.UnprocessedException;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.ManagementContext;
 import io.brooklyn.attributes.*;
@@ -21,27 +18,33 @@ import static com.hazelcast.actors.utils.Util.notNull;
  * <p/>
  * So long story short: everything you will put in the attribute-map will be highly available.
  */
-public abstract class Entity extends DispatchingActor {
+public abstract class Entity {
 
     private static final Logger log = LoggerFactory.getLogger(Entity.class);
 
-    @Injected
-    private ManagementContext managementContext;
+    EntityActor entityActor;
 
     private AttributeMap attributeMap = new AttributeMap(this);
 
-    @Override
     public void onActivation() throws Exception {
-        super.onActivation();
-
-        ActorRecipe recipe = getRecipe();
+        ActorRecipe recipe = entityActor.getRecipe();
 
         EntityConfig config = (EntityConfig) recipe.getProperties().get("entityConfig");
-        attributeMap.init(getHzInstance(), getRecipe(), config);
+        attributeMap.init(entityActor.getHzInstance(), entityActor.getRecipe(), config);
+    }
+
+    public EntityReference self() {
+        return entityActor.entityReference;
     }
 
     public final AttributeMap getAttributeMap() {
         return attributeMap;
+    }
+
+    public void onUnhandledMessage(Object msg, EntityReference sender) {
+        String id = sender == null ? "unknown" : sender.getId();
+        throw new UnprocessedException("No receive method found on Entity.class: " + getClass().getName() +
+                " for message.class:" + msg.getClass().getName() + " send by: " + id);
     }
 
     /**
@@ -52,20 +55,28 @@ public abstract class Entity extends DispatchingActor {
      * @param config the configuration for the entity.
      * @return the ActorRef of the created Entity.
      */
-    public final ActorRef spawnAndLink(EntityConfig config) {
+    public final EntityReference spawnAndLink(EntityConfig config) {
         return getManagementContext().spawnAndLink(self(), config);
     }
 
-    public final void send(ReferenceAttribute<ActorRef> destination, Object msg) {
-        send(destination.get(), msg);
+    public final void send(EntityReference destination, Object msg) {
+        getManagementContext().send(destination, msg);
+    }
+
+    public final void send(ReferenceAttribute<EntityReference> destination, Object msg) {
+        getManagementContext().send(destination.get(), msg);
     }
 
     public final EntityConfig getEntityConfig() {
-        return (EntityConfig) getRecipe().getProperties().get("entityConfig");
+        return (EntityConfig) entityActor.getRecipe().getProperties().get("entityConfig");
+    }
+
+    public final ActorRuntime getActorRuntime() {
+        return entityActor.getActorRuntime();
     }
 
     public final ManagementContext getManagementContext() {
-        return managementContext;
+        return entityActor.managementContext;
     }
 
     public final RelationsAttribute newRelationsAttribute(String name) {
@@ -146,14 +157,14 @@ public abstract class Entity extends DispatchingActor {
      * @param delayMs
      */
     public final void notifySelf(Object msg, int delayMs) {
-        getActorRuntime().notify(self(), msg, delayMs);
+        getActorRuntime().notify(self().toActorRef(), msg, delayMs);
     }
 
-    public final void subscribeToAttribute(ReferenceAttribute<ActorRef> subscriber, ActorRef target, AttributeType attributeType) {
+    public final void subscribeToAttribute(ReferenceAttribute<EntityReference> subscriber, EntityReference target, AttributeType attributeType) {
         getManagementContext().subscribeToAttribute(subscriber.get(), target, attributeType);
     }
 
-    public final void subscribeToAttribute(ActorRef subscriber, ActorRef target, AttributeType attributeType) {
+    public final void subscribeToAttribute(EntityReference subscriber, EntityReference target, AttributeType attributeType) {
         getManagementContext().subscribeToAttribute(subscriber, target, attributeType);
     }
 
@@ -183,14 +194,14 @@ public abstract class Entity extends DispatchingActor {
     //This message indicates we want to listen to a certain attribute.
     public static class AttributeSubscription extends AbstractMessage {
         private final String attributeName;
-        private final ActorRef subscriber;
+        private final EntityReference subscriber;
 
-        public AttributeSubscription(ActorRef subscriber, String attributeName) {
+        public AttributeSubscription(EntityReference subscriber, String attributeName) {
             this.attributeName = notNull(attributeName, "attributeName");
             this.subscriber = notNull(subscriber, "subscriber");
         }
 
-        public AttributeSubscription(ActorRef subscriber, AttributeType attributeType) {
+        public AttributeSubscription(EntityReference subscriber, AttributeType attributeType) {
             this(subscriber, attributeType.getName());
         }
     }
@@ -204,13 +215,19 @@ public abstract class Entity extends DispatchingActor {
         public final AttributeType attributeType;
         public final ActorRef subscriber;
 
+        public RelationsAttributeSubscription(String relationAttributeName, EntityReference subscriber, AttributeType attributeType) {
+            this.relationAttributeName = notNull(relationAttributeName, "relationAttributeName");
+            this.attributeType = notNull(attributeType, "attribute");
+            this.subscriber = notNull(subscriber, "subscriber").toActorRef();
+        }
+
         public RelationsAttributeSubscription(String relationAttributeName, ActorRef subscriber, AttributeType attributeType) {
             this.relationAttributeName = notNull(relationAttributeName, "relationAttributeName");
             this.attributeType = notNull(attributeType, "attribute");
             this.subscriber = notNull(subscriber, "subscriber");
         }
 
-        public RelationsAttributeSubscription(String relationAttributeName, ReferenceAttribute<ActorRef> subscribers, AttributeType attributeType) {
+        public RelationsAttributeSubscription(String relationAttributeName, ReferenceAttribute<EntityReference> subscribers, AttributeType attributeType) {
             this(relationAttributeName, subscribers.get(), attributeType);
         }
     }

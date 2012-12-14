@@ -8,8 +8,6 @@ TODO
 
 - with the namespace stuff concurrent behavior is a bit unclear; e.g. it could be that you miss the registration
 
-- integrate with jclouds
-
 - web cluster should not be hard connected to tomcat.
 
 - managementcontext: the 'application properties' should be available from the management context.

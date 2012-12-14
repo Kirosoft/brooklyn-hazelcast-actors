@@ -51,6 +51,14 @@ public class EntityConfig<E extends Entity> implements Serializable {
         }
     }
 
+    //TODO: Currently we always overwrite; but perhaps we want to have options for this.
+    public void addProperties(Entity entity){
+        notNull(entity,"entity");
+
+        Map<String,Object> inheritableProps = entity.getAttributeMap().getInheritableAttributes();
+        properties.putAll(inheritableProps);
+    }
+
     public <A> EntityConfig<E> addProperty(AttributeType<A> attributeType, A value) {
         notNull(attributeType, "attribute");
         return addProperty(attributeType.getName(), value);

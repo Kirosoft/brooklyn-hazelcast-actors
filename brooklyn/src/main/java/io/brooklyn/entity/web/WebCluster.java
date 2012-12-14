@@ -1,8 +1,9 @@
 package io.brooklyn.entity.web;
 
-import com.hazelcast.actors.api.ActorRef;
 import io.brooklyn.AbstractMessage;
+import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.attributes.RelationsAttribute;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.PlatformComponent;
 import io.brooklyn.entity.Stop;
 import io.brooklyn.entity.softwareprocess.SoftwareProcess;
@@ -13,8 +14,10 @@ import static com.hazelcast.actors.utils.Util.notNull;
 
 public class WebCluster extends PlatformComponent {
 
-    private static final Logger log = LoggerFactory.getLogger(Tomcat.class);
+    private static final Logger log = LoggerFactory.getLogger(WebCluster.class);
 
+    protected final ReferenceAttribute<? extends WebServerFactory> webserverFactory =
+            newReferenceAttribute("webserverFactory", new TomcatFactory());
     protected final RelationsAttribute webservers = newRelationsAttribute("webservers");
 
     @Override
@@ -30,7 +33,7 @@ public class WebCluster extends PlatformComponent {
     }
 
     public void receive(ScaleTo scaleTo) {
-        if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:ScaleTo");
+        if (log.isDebugEnabled()) log.debug(self() + ":WebCluster:" + scaleTo);
 
         int delta = scaleTo.size - webservers.size();
         if (delta == 0) {
@@ -46,16 +49,16 @@ public class WebCluster extends PlatformComponent {
 
     private void scaleDown(int delta) {
         for (int k = 0; k < delta; k++) {
-            ActorRef webServer = webservers.removeFirst();
+            EntityReference webServer = webservers.removeFirst();
             send(webServer, new Stop());
         }
     }
 
     private void scaleUp(int delta) {
+        WebServerFactory factory = webserverFactory.get();
         for (int k = 0; k < delta; k++) {
-            //todo: we want to use a factory here. We do not want to be tied to tomcat
-            //todo: we are linking to the webserver; the question is if we want to do that.
-            ActorRef webServer = spawnAndLink(new TomcatConfig());
+            EntityReference webServer = factory.newWebServer(this);
+            //todo: we need to convert webserver to entityreference
             webservers.add(webServer);
 
             //lets start webServer.
@@ -85,9 +88,9 @@ public class WebCluster extends PlatformComponent {
     }
 
     public static class ReplaceWebServer extends AbstractMessage {
-        public final ActorRef webServer;
+        public final EntityReference webServer;
 
-        public ReplaceWebServer(ActorRef webServer) {
+        public ReplaceWebServer(EntityReference webServer) {
             this.webServer = notNull(webServer, "webServer");
         }
     }

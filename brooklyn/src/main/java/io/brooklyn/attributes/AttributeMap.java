@@ -9,6 +9,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import io.brooklyn.entity.Entity;
 import io.brooklyn.entity.EntityConfig;
+import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.PlatformComponent;
 
 import java.io.Serializable;
@@ -22,6 +23,8 @@ import static com.hazelcast.actors.utils.Util.notNull;
  * <p/>
  * This class is very similar to the {@link brooklyn.event.basic.AttributeMap}.
  */
+//TODO: The Attributes don't need to go to the attributeMap for every read. The can store the previous written value.
+//This will certainly speed up access to the Attributemap
 public final class AttributeMap {
 
     //TODO:
@@ -29,14 +32,27 @@ public final class AttributeMap {
     //partition than then entity; we should inject a partition aware key so that all attributes for a specific entity
     //end up in the same partition as that entity. Currently the attributes are all over the place.
     private IMap<String, Object> attributeMap;
+    private IMap<String, Object> attributeSupportMap;
+
     private final Entity entity;
 
     public AttributeMap(Entity entity) {
         this.entity = notNull(entity, "entity");
     }
 
+    public Map<String, Object> getInheritableAttributes() {
+        Map<String, Object> map = new HashMap<>();
+
+        //TODO: Currently we copy all attributes, but we should only copy attributes that are inheritable
+        if (attributeMap != null) {
+        //   map.putAll(attributeMap);
+        }
+        return map;
+    }
+
     public void init(HazelcastInstance hazelcastInstance, ActorRecipe actorRecipe, EntityConfig config) {
-        this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributes");
+        this.attributeMap = hazelcastInstance.getMap(entity.self() + "-attributeMap");
+        this.attributeSupportMap = hazelcastInstance.getMap(entity.self() + "-attributeSupportMap");
 
         //copy all the properties from the recipe.
         Set<String> strings = actorRecipe.getProperties().keySet();
@@ -65,14 +81,14 @@ public final class AttributeMap {
 
         attributeMap.put(attributeType.getName(), newValue);
 
-        List<ActorRef> subscribers = (List<ActorRef>) attributeMap.get(getSubscriberKey(attributeType.getName()));
+        List<ActorRef> subscribers = (List<ActorRef>) attributeSupportMap.get(getSubscriberKey(attributeType.getName()));
         if (subscribers == null) {
             return;
         }
 
         for (ActorRef subscriber : subscribers) {
             SensorEvent event = new SensorEvent(entity.self(), attributeType.getName(), oldValue, newValue);
-            entity.getActorRuntime().send(entity.self(), subscriber, event);
+            entity.getActorRuntime().send(entity.self().toActorRef(), subscriber, event);
         }
     }
 
@@ -93,21 +109,21 @@ public final class AttributeMap {
         return oldValue != null && oldValue.equals(newValue);
     }
 
-    public void subscribe(String attributeName, ActorRef subscriber) {
+    public void subscribe(String attributeName, EntityReference subscriber) {
         notNull(attributeName, "attributeName");
         notNull(subscriber, "subscriber");
 
         String key = getSubscriberKey(attributeName);
-        List<ActorRef> subscribers = (List<ActorRef>) attributeMap.get(key);
+        List<EntityReference> subscribers = (List<EntityReference>) attributeSupportMap.get(key);
         if (subscribers == null) {
             subscribers = new LinkedList<>();
         }
         subscribers.add(subscriber);
-        attributeMap.put(key, subscribers);
+        attributeSupportMap.put(key, subscribers);
         Object value = attributeMap.get(attributeName);
         entity.getActorRuntime().send(
-                entity.self(),
-                subscriber,
+                entity.self().toActorRef(),
+                subscriber.toActorRef(),
                 new SensorEvent(entity.self(), attributeName, value, value));
     }
 
@@ -115,7 +131,7 @@ public final class AttributeMap {
         return entity.self() + "." + attributeName + ".subscribers";
     }
 
-    public final <E> ReferenceAttribute<E> newReferenceAttribute(final AttributeType<E> attributeType) {
+    public <E> ReferenceAttribute<E> newReferenceAttribute(final AttributeType<E> attributeType) {
         notNull(attributeType, "attributeType");
         return new ReferenceAttributeImpl<>(attributeType);
     }
@@ -135,7 +151,7 @@ public final class AttributeMap {
         return new ListAttributeImpl<>(attributeType);
     }
 
-    public final RelationsAttribute newRelationsAttribute(final AttributeType<ActorRef> attributeType) {
+    public final RelationsAttribute newRelationsAttribute(final AttributeType<EntityReference> attributeType) {
         notNull(attributeType, "attributeType");
         return new RelationsAttributeImpl(attributeType);
     }
@@ -226,9 +242,9 @@ public final class AttributeMap {
         }
     }
 
-    private class RelationsAttributeImpl extends ListAttributeImpl<ActorRef> implements RelationsAttribute {
+    private class RelationsAttributeImpl extends ListAttributeImpl<EntityReference> implements RelationsAttribute {
 
-        public RelationsAttributeImpl(AttributeType<ActorRef> attributeType) {
+        public RelationsAttributeImpl(AttributeType<EntityReference> attributeType) {
             super(attributeType);
         }
 
@@ -238,22 +254,22 @@ public final class AttributeMap {
 
         @Override
         public void registerOnChildren(AttributeType childAttribute, ActorRef subscriber) {
-            Set<ChildAttributeRegistration> registrations = (Set<ChildAttributeRegistration>) attributeMap.get(getRegistrationsKey());
+            Set<ChildAttributeRegistration> registrations = (Set<ChildAttributeRegistration>) attributeSupportMap.get(getRegistrationsKey());
             if (registrations == null) {
                 registrations = new HashSet();
             }
             registrations.add(new ChildAttributeRegistration(subscriber, childAttribute));
-            attributeMap.put(getRegistrationsKey(), registrations);
+            attributeSupportMap.put(getRegistrationsKey(), registrations);
         }
 
         @Override
-        public void add(ActorRef item) {
+        public void add(EntityReference item) {
             super.add(item);
 
-            Set<ChildAttributeRegistration> registrations = (Set<ChildAttributeRegistration>) attributeMap.get(getRegistrationsKey());
+            Set<ChildAttributeRegistration> registrations = (Set<ChildAttributeRegistration>) attributeSupportMap.get(getRegistrationsKey());
             if (registrations != null) {
                 for (ChildAttributeRegistration registration : registrations) {
-                    subscribe(registration.attributeType.getName(), registration.subscriber);
+                    subscribe(registration.attributeType.getName(), new EntityReference(registration.subscriber));
                 }
             }
         }
