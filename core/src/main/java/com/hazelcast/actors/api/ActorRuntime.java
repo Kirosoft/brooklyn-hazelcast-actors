@@ -1,6 +1,7 @@
 package com.hazelcast.actors.api;
 
 import java.util.Collection;
+import java.util.concurrent.Future;
 
 
 /**
@@ -18,6 +19,8 @@ public interface ActorRuntime {
     void send(ActorRef sender, Collection<ActorRef> destinations, Object msg);
 
     void send(ActorRef sender, ActorRef destination, Object msg);
+
+    Future ask(ActorRef sender, ActorRef destination, Object msg);
 
     /**
      * @param target

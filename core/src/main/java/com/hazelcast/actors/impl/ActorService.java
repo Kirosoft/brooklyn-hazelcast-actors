@@ -377,6 +377,11 @@ public class ActorService implements ManagedService, MigrationAwareService, Remo
         }
 
         @Override
+        public Future ask(ActorRef sender, ActorRef destination, Object msg) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public void send(ActorRef sender, ActorRef destination, Object msg) {
             notNull(destination, "destination");
             notNull(msg, "msg");

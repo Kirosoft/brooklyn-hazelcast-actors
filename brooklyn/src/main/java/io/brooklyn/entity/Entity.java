@@ -5,6 +5,9 @@ import com.hazelcast.actors.api.exceptions.UnprocessedException;
 import io.brooklyn.AbstractMessage;
 import io.brooklyn.ManagementContext;
 import io.brooklyn.attributes.*;
+import io.brooklyn.entity.enrichers.EnricherConfig;
+import io.brooklyn.entity.policies.PolicyConfig;
+import io.brooklyn.entity.softwareprocess.SoftwareProcessConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,6 +62,18 @@ public abstract class Entity {
         return getManagementContext().spawnAndLink(self(), config);
     }
 
+    public final EntityReference startSoftwareProcess(SoftwareProcessConfig softwareProcessConfig){
+        return spawnAndLink(softwareProcessConfig);
+    }
+
+    public final EntityReference startPolicy(PolicyConfig policyConfig){
+        return spawnAndLink(policyConfig);
+    }
+
+    public final EntityReference startEnricher(EnricherConfig enricherConfig){
+        return spawnAndLink(enricherConfig);
+    }
+
     public final void send(EntityReference destination, Object msg) {
         getManagementContext().send(destination, msg);
     }
@@ -81,6 +96,14 @@ public abstract class Entity {
 
     public final RelationsAttribute newRelationsAttribute(String name) {
         return attributeMap.newRelationsAttribute(new AttributeType(name));
+    }
+
+    public final RelationAttribute newRelationAttribute(String name) {
+        return attributeMap.newRelationAttribute(new AttributeType(name));
+    }
+
+    public final RelationAttribute newRelationAttribute(AttributeType type) {
+        return attributeMap.newRelationAttribute(type);
     }
 
     //TODO: type is not used.

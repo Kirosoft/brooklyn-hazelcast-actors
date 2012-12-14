@@ -58,7 +58,6 @@ public class WebCluster extends PlatformComponent {
         WebServerFactory factory = webserverFactory.get();
         for (int k = 0; k < delta; k++) {
             EntityReference webServer = factory.newWebServer(this);
-            //todo: we need to convert webserver to entityreference
             webservers.add(webServer);
 
             //lets start webServer.

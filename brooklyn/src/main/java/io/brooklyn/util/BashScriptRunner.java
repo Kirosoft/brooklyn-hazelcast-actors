@@ -2,6 +2,8 @@ package io.brooklyn.util;
 
 import brooklyn.location.basic.SshMachineLocation;
 import com.google.common.io.Files;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,6 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public class BashScriptRunner {
+
+    private static final Logger log = LoggerFactory.getLogger(BashScriptRunner.class);
+
 
     private String rawScript;
     private final Map<String, Object> environmentVariables = new HashMap();
@@ -42,7 +47,7 @@ public class BashScriptRunner {
         try {
             File script = buildFinalScript(file);
             String remotePath = "/tmp/" + UUID.randomUUID().toString().replace("-", "") + ".sh";
-            System.out.println("Running script:"+remotePath);
+            System.out.println("Running script:" + remotePath);
             sshMachineLocation.copyTo(script.getAbsoluteFile(), remotePath);
             sshMachineLocation.run("chmod +x " + remotePath);
 
@@ -52,6 +57,8 @@ public class BashScriptRunner {
             } else {
                 commandString = remotePath;
             }
+
+            log.info("Running command "+commandString);
 
             return sshMachineLocation.run(commandString);
         } catch (IOException e) {
@@ -67,8 +74,6 @@ public class BashScriptRunner {
             envVariables.append(entry.getKey() + "=" + entry.getValue());
             envVariables.append("\n");
         }
-
-        System.out.println(envVariables);
 
         String origin = Files.toString(file, Charset.defaultCharset());
         String result = origin.replace("${EnvironmentVariables}", envVariables);

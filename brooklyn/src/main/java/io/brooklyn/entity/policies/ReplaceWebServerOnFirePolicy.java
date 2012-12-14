@@ -27,7 +27,7 @@ public class ReplaceWebServerOnFirePolicy extends Policy {
         send(cluster, new WebCluster.ReplaceWebServer(webServerOnFire));
     }
 
-    public static class Config extends EntityConfig {
+    public static class Config extends PolicyConfig {
         public static final AttributeType<EntityReference> CLUSTER = new AttributeType<>("cluster");
 
         public Config() {

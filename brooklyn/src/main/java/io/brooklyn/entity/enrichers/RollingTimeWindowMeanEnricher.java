@@ -10,7 +10,7 @@ import java.util.Iterator;
 public class RollingTimeWindowMeanEnricher extends Enricher {
 
     public static final AttributeType<AttributeType<Double>> TARGET_ATTRIBUTE_TYPE = new AttributeType<>("targetAttribute");
-    public static final AttributeType<AttributeType<Number>> SOURCE_ATTRIBUTE_TYPE = new AttributeType<>("sourceAttribute");
+    public static final AttributeType<AttributeType<? extends Number>> SOURCE_ATTRIBUTE_TYPE = new AttributeType<>("sourceAttribute");
     public static final AttributeType<EntityReference> SOURCE = new AttributeType<>("source");
 
     private final ListAttribute<Double> values = newListAttribute("values", Double.class);
@@ -18,8 +18,8 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
     private final ReferenceAttribute<ConfidenceQualifiedNumber> lastAverage = newReferenceAttribute("lastAverage", new ConfidenceQualifiedNumber(0d, 0d));
     private final LongAttribute timePeriod = newLongAttribute("timePeriod", 10 * 1000L);
     private final ReferenceAttribute<AttributeType<Double>> targetAttribute = newReferenceAttribute(TARGET_ATTRIBUTE_TYPE);
-    private final ReferenceAttribute<AttributeType<Number>> sourceAttribute = newReferenceAttribute(SOURCE_ATTRIBUTE_TYPE);
-    private final ReferenceAttribute<EntityReference> source = newReferenceAttribute(SOURCE);
+    private final ReferenceAttribute<AttributeType<? extends Number>> sourceAttribute = newReferenceAttribute(SOURCE_ATTRIBUTE_TYPE);
+    private final RelationAttribute source = newRelationAttribute(SOURCE);
 
     @Override
     public void onActivation() throws Exception {
@@ -41,7 +41,7 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
         timestamps.add(event.getTimestamp());
         pruneValues(event.getTimestamp());
         Double average = getAverage(event.getTimestamp()).value;
-        send(source, new AttributePublication<>(targetAttribute, average));
+        source.send(new AttributePublication<>(targetAttribute, average));
     }
 
     public ConfidenceQualifiedNumber getAverage(long now) {
@@ -90,7 +90,7 @@ public class RollingTimeWindowMeanEnricher extends Enricher {
         }
     }
 
-    public static class Config extends EntityConfig {
+    public static class Config extends EnricherConfig<RollingTimeWindowMeanEnricher> {
         public Config() {
             super(RollingTimeWindowMeanEnricher.class);
         }

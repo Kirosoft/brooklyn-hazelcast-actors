@@ -114,11 +114,11 @@ public final class AttributeMap {
         notNull(subscriber, "subscriber");
 
         String key = getSubscriberKey(attributeName);
-        List<EntityReference> subscribers = (List<EntityReference>) attributeSupportMap.get(key);
+        List<ActorRef> subscribers = (List<ActorRef>) attributeSupportMap.get(key);
         if (subscribers == null) {
             subscribers = new LinkedList<>();
         }
-        subscribers.add(subscriber);
+        subscribers.add(subscriber.toActorRef());
         attributeSupportMap.put(key, subscribers);
         Object value = attributeMap.get(attributeName);
         entity.getActorRuntime().send(
@@ -129,6 +129,11 @@ public final class AttributeMap {
 
     private String getSubscriberKey(String attributeName) {
         return entity.self() + "." + attributeName + ".subscribers";
+    }
+
+    public RelationAttribute newRelationAttribute(final AttributeType attributeType){
+        notNull(attributeType, "attributeType");
+        return new RelationAttributeImpl(attributeType);
     }
 
     public <E> ReferenceAttribute<E> newReferenceAttribute(final AttributeType<E> attributeType) {
@@ -250,6 +255,11 @@ public final class AttributeMap {
 
         private String getRegistrationsKey() {
             return getName() + ".registrations";
+        }
+
+        @Override
+        public void start(EntityConfig config) {
+            add(entity.spawnAndLink(config));
         }
 
         @Override
@@ -426,6 +436,22 @@ public final class AttributeMap {
         @Override
         public AttributeType getAttributeType() {
             return attributeType;
+        }
+    }
+
+    private class RelationAttributeImpl extends ReferenceAttributeImpl<EntityReference> implements RelationAttribute{
+        public RelationAttributeImpl(AttributeType<EntityReference> attributeType) {
+            super(attributeType);
+        }
+
+        @Override
+        public void start(EntityConfig config) {
+            set(entity.spawnAndLink(config));
+        }
+
+        @Override
+        public void send(Object msg) {
+            entity.send(get(),msg);
         }
     }
 

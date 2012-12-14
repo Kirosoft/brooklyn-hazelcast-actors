@@ -70,10 +70,7 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
                 .targetAttribute(AVERAGE_USED_HEAP)
                 .sourceAttribute(USED_HEAP)
                 .source(self());
-        //the created enricher (which is also an entity) is linked to this process. So if tomcat exits, also the
-        //enricher is going to exit. Also the enricher will be created in the same partition as tomcat; we want them
-        //to be as close as possible to prevent remoting.
-        spawnAndLink(averageUsedHeapEnricherConfig);
+        startEnricher(averageUsedHeapEnricherConfig);
     }
 
     public void receive(Undeployment undeployment) {
@@ -101,12 +98,12 @@ public class Tomcat extends SoftwareProcess<TomcatDriver> {
             driver.install();
             driver.customize();
             driver.launch();
+            if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start completed");
         } catch (Exception e) {
             e.printStackTrace();
             state.set(Lifecycle.ON_FIRE);
+            if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start completed with error");
         }
-
-        if (log.isDebugEnabled()) log.debug(self() + ":Tomcat:Start completed");
     }
 
     public void receive(Stop stop) {

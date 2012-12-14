@@ -18,7 +18,7 @@ public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
     public static final AttributeType<PortRange> HTTP_PORT = new AttributeType<>("httpPort", PortRanges.fromString("8800+"));
     public static final AttributeType<PortRange> SHUTDOWN_PORT = new AttributeType<>("shutdownPort", PortRanges.fromString("9000+"));
     public static final AttributeType<PortRange> JMX_PORT = new AttributeType<>("jmxPort", PortRanges.fromString("10000+"));
-    public static final AttributeType<String> VERSION = new AttributeType<>("version", "7.0.32");
+    public static final AttributeType<String> VERSION = new AttributeType<>("version", "7.0.34");
 
     public TomcatConfig() {
         super(Tomcat.class);
