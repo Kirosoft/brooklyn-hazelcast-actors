@@ -14,6 +14,8 @@ public class Util {
     public final static String EXCEPTION_SEPARATOR = "------End remote and begin local stracktrace ------";
 
     public static Exception handle(InvocationTargetException e) throws Exception {
+        notNull(e,"e");
+
         Throwable cause = e.getCause();
         if (cause instanceof Exception) {
             throw (Exception) cause;
@@ -25,6 +27,9 @@ public class Util {
     }
 
     public static void fixStackTrace(Throwable cause, StackTraceElement[] clientSideStackTrace) {
+        notNull(cause,"cause");
+        notNull(clientSideStackTrace,"clientSideStackTrace");
+
         StackTraceElement[] serverSideStackTrace = cause.getStackTrace();
         StackTraceElement[] newStackTrace = new StackTraceElement[clientSideStackTrace.length + serverSideStackTrace.length];
         System.arraycopy(serverSideStackTrace, 0, newStackTrace, 0, serverSideStackTrace.length);

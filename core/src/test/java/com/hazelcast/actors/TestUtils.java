@@ -20,7 +20,7 @@ public class TestUtils {
 
         try {
             instance.destroy();
-        } catch (RuntimeException e) {
+        } catch (RuntimeException ignore) {
       }
     }
 
@@ -38,9 +38,9 @@ public class TestUtils {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
         throwable.printStackTrace(pw);
-        String stacktrace = sw.toString();
+        String stackTrace = sw.toString();
 
-        assertTrue("stacktrace does not contains exception separator\n" + stacktrace, stacktrace.contains(Util.EXCEPTION_SEPARATOR));
+        assertTrue("stacktrace does not contains exception separator\n" + stackTrace, stackTrace.contains(Util.EXCEPTION_SEPARATOR));
     }
 
     public static void assertCompletes(CountDownLatch latch) {

@@ -10,6 +10,7 @@ public class SendTest extends AbstractTest {
     @Test
     public void noSender_whenSendingSingleMessage() {
         ActorRef target = actorRuntime.spawn(new ActorRecipe(TestActor.class, "foo"));
+
         TestActor testActor = (TestActor) actorRuntime.getActor(target);
         Object msg = "foo";
         actorRuntime.send(target, msg);

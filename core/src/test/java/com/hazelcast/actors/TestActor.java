@@ -17,6 +17,8 @@ public class TestActor extends AbstractActor {
 
     @Override
     public void receive(Object msg, ActorRef sender) throws Exception {
+        System.out.printf(self()+" received: "+msg);
+
         messages.add(new Received(msg, sender));
 
         if (msg instanceof Exception) {

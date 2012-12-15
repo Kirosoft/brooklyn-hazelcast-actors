@@ -1,6 +1,7 @@
 package com.hazelcast.actors;
 
 import com.hazelcast.actors.api.ActorRef;
+import com.hazelcast.actors.impl.ActorRuntimeProxyImpl;
 import com.hazelcast.actors.impl.ActorService;
 import com.hazelcast.actors.impl.ActorServiceConfig;
 import com.hazelcast.config.Config;
@@ -15,7 +16,7 @@ import java.util.Set;
 
 public abstract class AbstractTest {
 
-    protected static ActorService.ActorRuntimeProxyImpl actorRuntime;
+    protected static ActorRuntimeProxyImpl actorRuntime;
     protected static HazelcastInstance hzInstance;
     protected static IMap<ActorRef, Set<ActorRef>> linksMap;
 
@@ -29,7 +30,7 @@ public abstract class AbstractTest {
         services.addServiceConfig(actorServiceConfig);
 
         hzInstance = Hazelcast.newHazelcastInstance(config);
-        actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
+        actorRuntime = (ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
         linksMap = hzInstance.getMap("linksMap");
     }
 

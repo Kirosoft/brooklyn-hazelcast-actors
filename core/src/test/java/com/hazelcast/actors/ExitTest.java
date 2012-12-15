@@ -22,6 +22,7 @@ import java.util.Vector;
 public class ExitTest extends AbstractTest{
 
     @Test
+    @Ignore
     public void exitRootActorWithoutChildren() {
         ActorRef ref = actorRuntime.spawn(new ActorRecipe(TerminationActor.class));
         TerminationActor terminationActor = (TerminationActor) actorRuntime.getActor(ref);
@@ -44,6 +45,7 @@ public class ExitTest extends AbstractTest{
     }
 
     @Test
+    @Ignore
     public void exitWhenAlreadyTerminated(){
         ActorRef ref = actorRuntime.spawn(new ActorRecipe(TerminationActor.class));
         TerminationActor terminationActor = (TerminationActor) actorRuntime.getActor(ref);

@@ -1,9 +1,6 @@
 package com.hazelcast.actors.impl.actorcontainers;
 
-import com.hazelcast.actors.ActorWithBrokenActivate;
-import com.hazelcast.actors.ActorWithBrokenConstructor;
-import com.hazelcast.actors.TestActor;
-import com.hazelcast.actors.TestUtils;
+import com.hazelcast.actors.*;
 import com.hazelcast.actors.api.ActorRecipe;
 import com.hazelcast.actors.api.ActorRef;
 import com.hazelcast.actors.api.exceptions.ActorInstantiationException;
@@ -23,30 +20,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 
-public class ActorRuntimeTest {
-
-    private static ActorService.ActorRuntimeProxyImpl actorRuntime;
-    private static HazelcastInstance hzInstance;
-
-    @BeforeClass
-    public static void setUp() {
-        Config config = new Config();
-        Services services = config.getServicesConfig();
-
-        ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
-        actorServiceConfig.setActorFactory(new BasicActorFactory());
-        actorServiceConfig.setEnabled(true);
-        services.addServiceConfig(actorServiceConfig);
-
-        hzInstance = Hazelcast.newHazelcastInstance(config);
-        actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        actorRuntime.destroy();
-        Hazelcast.shutdownAll();
-    }
+public class ActorRuntimeTest extends AbstractTest{
 
     @Ignore
     @Test

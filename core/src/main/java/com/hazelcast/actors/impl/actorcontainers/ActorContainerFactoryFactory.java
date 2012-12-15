@@ -4,10 +4,11 @@ import com.hazelcast.actors.api.Actor;
 import com.hazelcast.actors.api.ActorFactory;
 import com.hazelcast.actors.api.ActorRuntime;
 import com.hazelcast.core.IMap;
-import com.hazelcast.spi.impl.NodeServiceImpl;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 
 public interface ActorContainerFactoryFactory<A extends Actor> {
 
     ActorContainerFactory<A> newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap monitorMap,
-                                                       NodeServiceImpl nodeService);
+                                        IMap responseMap,
+                                        NodeEngineImpl nodeEngine);
 }

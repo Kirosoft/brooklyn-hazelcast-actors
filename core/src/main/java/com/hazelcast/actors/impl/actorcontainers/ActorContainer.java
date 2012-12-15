@@ -1,10 +1,6 @@
 package com.hazelcast.actors.impl.actorcontainers;
 
 import com.hazelcast.actors.api.*;
-import com.hazelcast.core.IMap;
-import com.hazelcast.spi.impl.NodeServiceImpl;
-
-import java.util.Set;
 
 /**
  * The ActorContainer is a container that manages a single actor instance.
@@ -41,5 +37,7 @@ public interface ActorContainer<A extends Actor> {
      * @param message is not allowed to be null.
      * @throws InterruptedException
      */
-    void post(ActorRef sender, Object message) throws InterruptedException;
+    void send(ActorRef sender, Object message) throws InterruptedException;
+
+    void ask(ActorRef sender, Object message, String responseId)throws InterruptedException;
 }

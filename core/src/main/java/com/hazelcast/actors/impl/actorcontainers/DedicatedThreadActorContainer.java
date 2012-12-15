@@ -46,14 +46,20 @@ public class DedicatedThreadActorContainer<A extends Actor> extends AbstractActo
     }
 
     @Override
-    public void post(ActorRef sender, Object message) throws InterruptedException {
+    public void send(ActorRef sender, Object message) throws InterruptedException {
         if (sender == null) {
             mailbox.put(message);
         } else {
-            mailbox.put(new MessageWrapper(message, sender));
+            mailbox.put(new MessageWrapper(message, sender,null));
         }
     }
-      /*
+
+    @Override
+    public void ask(ActorRef sender, Object message,String responseId) throws InterruptedException {
+        throw new RuntimeException();
+    }
+
+    /*
     public static class Factory<A extends Actor> implements ActorContainer.Factory<A> {
         private Dependencies actorContainerDependencies;
 

@@ -2,7 +2,7 @@ package com.hazelcast.actors.impl.actorcontainers;
 
 import com.hazelcast.actors.api.*;
 import com.hazelcast.core.IMap;
-import com.hazelcast.spi.impl.NodeServiceImpl;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -17,7 +17,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p/>
  * Every Actor will have 1 ActorContainer.
  */
-public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractActorContainer<A, ForkJoinPoolActorContainer.Dependencies> {
+public final class ForkJoinPoolActorContainer<A extends Actor>
+        extends AbstractActorContainer<A, ForkJoinPoolActorContainer.Dependencies> {
     //todo: can be replaced by a FIeldUpdates and making it volatile.
     private final AtomicBoolean lock = new AtomicBoolean();
     protected final BlockingQueue mailbox = new LinkedBlockingQueue(1000000);
@@ -27,11 +28,16 @@ public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractA
     }
 
     @Override
-    public void post(ActorRef sender, Object message) throws InterruptedException {
+    public void ask(ActorRef sender, Object message, String responseId) throws InterruptedException {
+        throw new RuntimeException();
+    }
+
+    @Override
+    public void send(ActorRef sender, Object message) throws InterruptedException {
         if (sender == null) {
             mailbox.put(message);
         } else {
-            mailbox.put(new MessageWrapper(message, sender));
+            mailbox.put(new MessageWrapper(message, sender,null));
         }
 
         if (lock.get()) {
@@ -100,26 +106,28 @@ public final class ForkJoinPoolActorContainer<A extends Actor> extends AbstractA
         }
     }
 
-    public static class Dependencies extends AbstractActorContainer.Dependencies{
+    public static class Dependencies extends AbstractActorContainer.Dependencies {
         private final ForkJoinPool forkJoinPool;
 
         public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
-                            NodeServiceImpl nodeService, ForkJoinPool forkJoinPool) {
-            super(actorFactory, actorRuntime, monitorMap, nodeService);
+                            IMap responseMap,
+                            NodeEngineImpl nodeEngine, ForkJoinPool forkJoinPool) {
+            super(actorFactory, actorRuntime, monitorMap, responseMap, nodeEngine);
             this.forkJoinPool = forkJoinPool;
         }
     }
 
-    public static class ForkJoinContainerFactoryFactory implements ActorContainerFactoryFactory{
+    public static class ForkJoinContainerFactoryFactory implements ActorContainerFactoryFactory {
 
         @Override
         public ActorContainerFactory newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime,
                                                 IMap monitorMap,
-                                                NodeServiceImpl nodeService) {
+                                                IMap responseMap,
+                                                NodeEngineImpl nodeEngine) {
             ForkJoinPool forkJoinPool = new ForkJoinPool();
 
             ForkJoinPoolActorContainer.Dependencies dependencies = new ForkJoinPoolActorContainer.Dependencies(
-                    actorFactory,actorRuntime,monitorMap,nodeService,forkJoinPool);
+                    actorFactory, actorRuntime, monitorMap, responseMap, nodeEngine, forkJoinPool);
             return new Factory(dependencies);
         }
     }

@@ -2,7 +2,7 @@ package com.hazelcast.actors.impl.actorcontainers;
 
 import com.hazelcast.actors.api.*;
 import com.hazelcast.core.IMap;
-import com.hazelcast.spi.impl.NodeServiceImpl;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.hazelcast.actors.utils.Util.notNull;
 
-public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractActorContainer<A, ThreadPoolExecutorActorContainer.Dependencies> {
+public class ThreadPoolExecutorActorContainer<A extends Actor>
+        extends AbstractActorContainer<A, ThreadPoolExecutorActorContainer.Dependencies> {
     //todo: can be replaced by a FIeldUpdates and making it volatile.
     private final AtomicBoolean lock = new AtomicBoolean();
 
@@ -26,11 +27,24 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
     }
 
     @Override
-    public void post(ActorRef sender, Object message) throws InterruptedException {
+    public void ask(ActorRef sender, Object message, String responseId) throws InterruptedException {
+            mailbox.put(new MessageWrapper(message, sender, responseId));
+
+        if (lock.get()) {
+            //if another thread is processing the actor, we don't need to schedule for execution. It will be the other
+            //thread's responsibility
+            return;
+        }
+
+        dependencies.executor.execute(processingForkJoinTask);
+    }
+
+    @Override
+    public void send(ActorRef sender, Object message) throws InterruptedException {
         if (sender == null) {
             mailbox.put(message);
         } else {
-            mailbox.put(new MessageWrapper(message, sender));
+            mailbox.put(new MessageWrapper(message, sender, null));
         }
 
         if (lock.get()) {
@@ -53,7 +67,6 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
                 return;
             }
 
-
             try {
                 Object m;
                 try {
@@ -64,12 +77,16 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
 
                 ActorRef sender;
                 Object message;
+                String askId;
                 if (m instanceof MessageWrapper) {
-                    message = ((MessageWrapper) m).content;
-                    sender = ((MessageWrapper) m).sender;
+                    MessageWrapper messageWrapper = (MessageWrapper) m;
+                    message = messageWrapper.content;
+                    sender = messageWrapper.sender;
+                    askId = messageWrapper.askId;
                 } else {
                     message = m;
                     sender = null;
+                    askId = null;
                 }
 
                 if (message == EXIT) {
@@ -77,9 +94,18 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
                 } else {
                     try {
                         actor.receive(message, sender);
+                        if(askId!=null){
+                            dependencies.responseMap.put(askId,true);
+                        }
                     } catch (Exception exception) {
+
                         handleProcessingException(sender, exception);
+
+                        if(askId!=null){
+                            dependencies.responseMap.put(askId,exception);
+                        }
                     }
+
                 }
             } finally {
                 lock.set(false);
@@ -95,9 +121,11 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
 
         public final ExecutorService executor;
 
-        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> monitorMap,
-                            NodeServiceImpl nodeService, ExecutorService executor) {
-            super(actorFactory, actorRuntime, monitorMap, nodeService);
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef,
+                Set<ActorRef>> monitorMap,
+                            IMap<String, Object> responseMap,
+                            NodeEngineImpl nodeEngine, ExecutorService executor) {
+            super(actorFactory, actorRuntime, monitorMap, responseMap, nodeEngine);
             this.executor = notNull(executor, "executor");
         }
     }
@@ -105,9 +133,9 @@ public class ThreadPoolExecutorActorContainer<A extends Actor> extends AbstractA
     public static class FactoryFactory implements ActorContainerFactoryFactory {
 
         @Override
-        public ActorContainerFactory newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap monitorMap, NodeServiceImpl nodeService) {
-            ExecutorService executorService = Executors.newFixedThreadPool(16);
-            Dependencies dependencies = new Dependencies(actorFactory, actorRuntime, monitorMap, nodeService, executorService);
+        public ActorContainerFactory newFactory(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap monitorMap, IMap responseMap, NodeEngineImpl nodeService) {
+            ExecutorService nodeEngine = Executors.newFixedThreadPool(16);
+            Dependencies dependencies = new Dependencies(actorFactory, actorRuntime, monitorMap, responseMap, nodeService, nodeEngine);
             return new Factory(dependencies);
         }
     }

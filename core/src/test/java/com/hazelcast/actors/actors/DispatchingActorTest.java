@@ -1,5 +1,6 @@
 package com.hazelcast.actors.actors;
 
+import com.hazelcast.actors.AbstractTest;
 import com.hazelcast.actors.DummyActorContext;
 import com.hazelcast.actors.TestUtils;
 import com.hazelcast.actors.api.ActorRecipe;
@@ -24,30 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
-public class DispatchingActorTest {
-
-    private static ActorService.ActorRuntimeProxyImpl actorRuntime;
-    private static HazelcastInstance hzInstance;
-
-    @BeforeClass
-    public static void setUp() {
-        Config config = new Config();
-        Services services = config.getServicesConfig();
-
-        ActorServiceConfig actorServiceConfig = new ActorServiceConfig();
-        actorServiceConfig.setActorFactory(new BasicActorFactory());
-        actorServiceConfig.setEnabled(true);
-        services.addServiceConfig(actorServiceConfig);
-
-        hzInstance = Hazelcast.newHazelcastInstance(config);
-        actorRuntime = (ActorService.ActorRuntimeProxyImpl) hzInstance.getServiceProxy(ActorService.NAME, "foo");
-    }
-
-    @AfterClass
-    public static void tearDown() {
-        actorRuntime.destroy();
-        Hazelcast.shutdownAll();
-    }
+public class DispatchingActorTest extends AbstractTest {
 
     @Test
     public void whenExactMatchAndNoSender() throws Exception {

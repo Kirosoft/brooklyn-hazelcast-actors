@@ -6,7 +6,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.instance.HazelcastInstanceImpl;
 import com.hazelcast.nio.DataSerializable;
-import com.hazelcast.spi.impl.NodeServiceImpl;
+import com.hazelcast.spi.impl.NodeEngineImpl;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -84,11 +84,11 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
     @Override
     public void exit() throws Exception {
         if (trapExit) {
-            post(null, EXIT);
+            send(null, EXIT);
         } else {
             exitPending = true;
             //todo: following is  hack to get the actor running
-            post(null, EXIT);
+            send(null, EXIT);
             //todo: the problem here is that we don't want to wait till the next message is send to
         }
     }
@@ -140,10 +140,12 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
     protected static class MessageWrapper {
         protected final Object content;
         protected final ActorRef sender;
+        protected final String askId;
 
-        MessageWrapper(Object content, ActorRef sender) {
+        MessageWrapper(Object content, ActorRef sender, String askId) {
             this.content = content;
             this.sender = sender;
+            this.askId = askId;
         }
     }
 
@@ -163,17 +165,21 @@ public abstract class AbstractActorContainer<A extends Actor, D extends Abstract
     public static class Dependencies {
         public final ActorRuntime actorRuntime;
         public final IMap<ActorRef, Set<ActorRef>> linkedMap;
-        public final NodeServiceImpl nodeService;
+        public final IMap<String, Object> responseMap;
+        public final NodeEngineImpl nodeService;
         public final ActorFactory actorFactory;
         public final HazelcastInstanceImpl hzInstance;
 
-        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime, IMap<ActorRef, Set<ActorRef>> linkedMap,
-                            NodeServiceImpl nodeService) {
+        public Dependencies(ActorFactory actorFactory, ActorRuntime actorRuntime,
+                            IMap<ActorRef, Set<ActorRef>> linkedMap,
+                            IMap<String, Object> responseMap,
+                            NodeEngineImpl nodeEngine) {
             this.actorFactory = actorFactory;
             this.actorRuntime = actorRuntime;
             this.linkedMap = linkedMap;
-            this.nodeService = nodeService;
-            this.hzInstance = nodeService.getNode().hazelcastInstance;
+            this.nodeService = nodeEngine;
+            this.hzInstance = nodeEngine.getNode().hazelcastInstance;
+            this.responseMap = responseMap;
         }
     }
 }
