@@ -7,6 +7,7 @@ import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.entity.EntityReference;
 import io.brooklyn.entity.PlatformComponent;
+import io.brooklyn.entity.Stop;
 
 public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends PlatformComponent {
 
@@ -27,8 +28,34 @@ public abstract class SoftwareProcess<D extends SoftwareProcessDriver> extends P
         return softwareProcessDriver;
     }
 
-    public void receive(Start start) {
-        //machine.set(start.machine);
+    public final void receive(Start start) {
+        location.set(start.location);
+        preStart();
+        start();
+        postStart();
+    }
+
+    public abstract void start();
+
+    public void postStart() {
+    }
+
+    public void preStart() {
+    }
+
+    public final void receive(Stop stop) {
+        preStop();
+        stop();
+        postStop();
+    }
+
+    private void stop() {
+    }
+
+    private void postStop() {
+    }
+
+    private void preStop() {
     }
 
     public static class Start extends AbstractMessage {

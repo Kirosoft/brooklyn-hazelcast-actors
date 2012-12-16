@@ -6,7 +6,7 @@ import io.brooklyn.attributes.AttributeType;
 import io.brooklyn.attributes.ReferenceAttribute;
 import io.brooklyn.attributes.PortAttribute;
 
-//TODO: It is unclear what the purpose of the PlatformComponent is.
+//TODO: It is unclear what the purpose of the PlatformComponent is apart from having a location.
 public class PlatformComponent extends Entity {
 
     public final ReferenceAttribute<Location> location = newReferenceAttribute("location");

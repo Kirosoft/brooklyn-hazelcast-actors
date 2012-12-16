@@ -43,5 +43,4 @@ public class TomcatConfig extends SoftwareProcessConfig<Tomcat> {
         addProperty(VERSION, version);
         return this;
     }
-
 }

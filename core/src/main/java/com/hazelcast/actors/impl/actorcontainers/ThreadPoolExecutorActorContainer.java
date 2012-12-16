@@ -28,7 +28,7 @@ public class ThreadPoolExecutorActorContainer<A extends Actor>
 
     @Override
     public void ask(ActorRef sender, Object message, String responseId) throws InterruptedException {
-            mailbox.put(new MessageWrapper(message, sender, responseId));
+        mailbox.put(new MessageWrapper(message, sender, responseId));
 
         if (lock.get()) {
             //if another thread is processing the actor, we don't need to schedule for execution. It will be the other
@@ -93,16 +93,17 @@ public class ThreadPoolExecutorActorContainer<A extends Actor>
                     handleExit();
                 } else {
                     try {
+                        //todo: we need let the receive method return an object.
                         actor.receive(message, sender);
-                        if(askId!=null){
-                            dependencies.responseMap.put(askId,true);
+                        if (askId != null) {
+                            Object response = true;
+                            dependencies.responseMap.put(askId, response);
                         }
                     } catch (Exception exception) {
-
                         handleProcessingException(sender, exception);
 
-                        if(askId!=null){
-                            dependencies.responseMap.put(askId,exception);
+                        if (askId != null) {
+                            dependencies.responseMap.put(askId, exception);
                         }
                     }
 
